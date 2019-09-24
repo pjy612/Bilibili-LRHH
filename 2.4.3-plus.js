@@ -2418,6 +2418,87 @@
         const BiliPushUtils={
             raffleIdSet: new Set(),
             guardIdSet: new Set(),
+            pkIdSet:new Set(),
+            API:{
+                Pk:{
+                    check: (roomid) => {
+                        return API.ajax({
+                            url: 'xlive/lottery-interface/v1/pk/check',
+                            data: {
+                                roomid: roomid
+                            }
+                        });
+                    },
+                    join: (roomid, id) => {
+                        return API.ajaxWithCommonArgs({
+                            method: 'POST',
+                            url: 'xlive/lottery-interface/v1/pk/join',
+                            data: {
+                                roomid: roomid,
+                                id: id
+                            }
+                        });
+                    }
+                }
+            },
+            Pk:{
+                run: (roomid) => {
+                    try {
+                        if (Info.blocked) return $.Deferred().resolve();
+                        return BiliPushUtils.API.Pk.check(roomid).then((response) => {
+                            DEBUG('BiliPushUtils.Pk.run: BiliPushUtils.API.Pk.check', response);
+                            if (response.code === 0) {
+                                return BiliPushUtils.Pk.join(roomid, response.data);
+                            } else {
+                                window.toast(`[自动抽奖][乱斗领奖](roomid=${roomid})${response.msg}`, 'caution');
+                            }
+                        }, () => {
+                            window.toast(`[自动抽奖][乱斗领奖]检查直播间(${roomid})失败，请检查网络`, 'error');
+                            return delayCall(() => BiliPushUtils.Pk.run(roomid));
+                        });
+                    } catch (err) {
+                        window.toast('[自动抽奖][乱斗领奖]运行时出现异常', 'error');
+                        console.error(`[${NAME}]`, err);
+                        return $.Deferred().reject();
+                    }
+                },
+                join: (roomid, ids, i = 0) => {
+                    if (Info.blocked) return $.Deferred().resolve();
+                    if (i >= ids.length) return $.Deferred().resolve();
+                    const obj = ids[i];
+                    if (obj.status === 1) {
+                        return BiliPushUtils.Pk._join(roomid, obj.id).then(() => BiliPushUtils.Pk.join(roomid, ids, i + 1));
+                    }
+                    return BiliPushUtils.Pk.join(roomid, ids, i + 1);
+                },
+                _join: (roomid, id) => {
+                    if (Info.blocked) return $.Deferred().resolve();
+                    roomid = parseInt(roomid, 10);
+                    id = parseInt(id, 10);
+                    if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
+                    // id过滤，防止重复参加
+                    if (BiliPushUtils.pkIdSet.has(id)) return $.Deferred().resolve();
+                    BiliPushUtils.pkIdSet.add(id); // 加入id记录列表
+                    return BiliPushUtils.API.Pk.join(roomid, id).then((response) => {
+                        DEBUG('BiliPushUtils.Pk._join: BiliPushUtils.API.Pk.join', response);
+                        if (response.code === 0) {
+                            window.toast(`[自动抽奖][乱斗领奖]领取(roomid=${roomid},id=${id})成功`, 'success');
+                        } else if (response.msg.indexOf('拒绝') > -1) {
+                            Info.blocked = true;
+                            up();
+                            window.toast('[自动抽奖][乱斗领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
+                        } else if (response.msg.indexOf('快') > -1) {
+                            return delayCall(() => BiliPushUtils.Pk._join(roomid, id));
+                        } else if (response.msg.indexOf('过期') > -1) {
+                        } else {
+                            window.toast(`[自动抽奖][乱斗领奖](roomid=${roomid},id=${id})${response.msg}`, 'caution');
+                        }
+                    }, () => {
+                        window.toast(`[自动抽奖][乱斗领奖]领取(roomid=${roomid},id=${id})失败，请检查网络`, 'error');
+                        return delayCall(() => BiliPushUtils.Pk._join(roomid, id));
+                    });
+                }
+            },
             Gift: {
                 fishingCheck: (roomid) => {
                     const p = $.Deferred();
@@ -2627,49 +2708,6 @@
                 }, function (err) {
                     window.toast(err.message || err, 'error');
                 });
-                /*
-                GM_xmlhttpRequest({
-                    method: "POST",
-                    url: url,
-                    onload: function(rsp) {
-                        var d=JSON.parse(rsp.responseText)
-                        var url = d.server;
-                        if (BiliPush.gsocket) BiliPush.gsocket.close();
-                    BiliPush.gsocket = null;
-                    BiliPush.gsocket = new WebSocket(url);
-                    BiliPush.gsocket.onopen = function (e) {
-                        window.toast('bilipush 连接成功', 'info');
-                    };
-                    BiliPush.gsocket.onclose = function (e) {
-                        window.toast('bilipush 连接断开', 'caution');
-                        BiliPush.gsocket = null;
-                        clearTimeout(BiliPush.gsocketTimeId);
-                        BiliPush.gsocketTimeId = setTimeout(function () {
-                            BiliPush.connectWebsocket();
-                        }, 5000);
-                    };
-                    BiliPush.gsocket.onmessage = function (e) {
-                        try {
-                            var msg = JSON.parse(e.data);
-                            BiliPush.onRafflePost(msg);
-                        } catch (e) {
-                            console.log(e);
-                            return;
-                        }
-                    };
-                    BiliPush.gsocket.onerror = function (e) {
-                        window.toast('bilipush 连接异常', 'error');
-                        BiliPush.gsocket = null;
-                        clearTimeout(BiliPush.gsocketTimeId);
-                        BiliPush.gsocketTimeId = setTimeout(function () {
-                            BiliPush.connectWebsocket();
-                        }, 5000);
-                    };
-                    },
-                    onerror:function(err){
-                        console.error(err);
-                    }
-                });*/
             },
             onRafflePost :(rsp)=>{
                 try{
@@ -2680,11 +2718,15 @@
                         switch(raffle_type){
                             case "TV" :
                                 window.toast(`bilipush 监控到 房间 ${room_id} 的小电视,id=${raffle_id}`, 'info');
-                                BiliPushUtils.Gift.run(room_id);
+                                BiliPushUtils.Gift.run(room_id)
                                 break;
                             case "GUARD":
                                 window.toast(`bilipush 监控到 房间 ${room_id} 的大航海,id=${raffle_id}`, 'info');
-                                BiliPushUtils.Guard.run(room_id);
+                                BiliPushUtils.Guard.run(room_id)
+                                break;
+                            case "PK":
+                                window.toast(`bilipush 监控到 房间 ${room_id} 的大乱斗,id=${raffle_id}`, 'info');
+                                BiliPushUtils.Pk.run(room_id);
                                 break;
                         }
                     }
