@@ -2590,7 +2590,7 @@
             connectWebsocket :()=>{
                 window.toast('初始化bilipush 推送服务', 'info');
                 var data = {};
-                var url="https://49.235.200.131:5000/ws/pre-connect";
+                var url="https://bilipush.1024dream.net:5000/ws/pre-connect";
                 BiliPush._ajax(url,data,function(d){
                     var url = d.server;
                     if (BiliPush.gsocket) BiliPush.gsocket.close();
