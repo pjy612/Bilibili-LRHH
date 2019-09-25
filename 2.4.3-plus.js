@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Bilibili直播间挂机助手
+// @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.3-plus
+// @version      2.4.3.2
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
-// @author       SeaLoong
+// @author       SeaLoong,pjy612
 // @homepageURL  https://github.com/SeaLoong/Bilibili-LRHH
 // @supportURL   https://github.com/SeaLoong/Bilibili-LRHH/issues
 // @include      /https?:\/\/live\.bilibili\.com\/\d+\??.*/
@@ -2419,6 +2419,22 @@
             raffleIdSet: new Set(),
             guardIdSet: new Set(),
             pkIdSet:new Set(),
+            BaseRoomAction:(roomid) => {
+                const p = $.Deferred();
+                API.room.room_init(roomid).then((response) => {
+                    DEBUG('BiliPushUtils.BaseRoomAction: API.room.room_init', response);
+                    if (response.code === 0) {
+                        if (response.data.is_hidden || response.data.is_locked || response.data.encrypted || response.data.pwd_verified) return p.resolve(true);
+                        return p.resolve(false);
+                    }
+                    p.reject();
+                }, () => {
+                    p.reject();
+                }).always(() => {
+                    API.room.room_entry_action(roomid);
+                });
+                return p;
+            },
             API:{
                 Pk:{
                     check: (roomid) => {
@@ -2445,16 +2461,20 @@
                 run: (roomid) => {
                     try {
                         if (Info.blocked) return $.Deferred().resolve();
-                        return BiliPushUtils.API.Pk.check(roomid).then((response) => {
-                            DEBUG('BiliPushUtils.Pk.run: BiliPushUtils.API.Pk.check', response);
-                            if (response.code === 0) {
-                                return BiliPushUtils.Pk.join(roomid, response.data);
-                            } else {
-                                window.toast(`[自动抽奖][乱斗领奖](roomid=${roomid})${response.msg}`, 'caution');
+                        return BiliPushUtils.BaseRoomAction(roomid).then((fishing) => {
+                            if (!fishing) {
+                                return BiliPushUtils.API.Pk.check(roomid).then((response) => {
+                                    DEBUG('BiliPushUtils.Pk.run: BiliPushUtils.API.Pk.check', response);
+                                    if (response.code === 0) {
+                                        return BiliPushUtils.Pk.join(roomid, response.data);
+                                    } else {
+                                        window.toast(`[自动抽奖][乱斗领奖](roomid=${roomid})${response.msg}`, 'caution');
+                                    }
+                                }, () => {
+                                    window.toast(`[自动抽奖][乱斗领奖]检查直播间(${roomid})失败，请检查网络`, 'error');
+                                    return delayCall(() => BiliPushUtils.Pk.run(roomid));
+                                });
                             }
-                        }, () => {
-                            window.toast(`[自动抽奖][乱斗领奖]检查直播间(${roomid})失败，请检查网络`, 'error');
-                            return delayCall(() => BiliPushUtils.Pk.run(roomid));
                         });
                     } catch (err) {
                         window.toast('[自动抽奖][乱斗领奖]运行时出现异常', 'error');
@@ -2500,27 +2520,11 @@
                 }
             },
             Gift: {
-                fishingCheck: (roomid) => {
-                    const p = $.Deferred();
-                    API.room.room_init(roomid).then((response) => {
-                        DEBUG('BiliPushUtils.Gift.fishingCheck: API.room.room_init', response);
-                        if (response.code === 0) {
-                            if (response.data.is_hidden || response.data.is_locked || response.data.encrypted || response.data.pwd_verified) return p.resolve(true);
-                            return p.resolve(false);
-                        }
-                        p.reject();
-                    }, () => {
-                        p.reject();
-                    }).always(() => {
-                        API.room.room_entry_action(roomid);
-                    });
-                    return p;
-                },
                 run: (roomid) => {
                     // 全部参加完成返回resolve，任意一个失败返回reject
                     try {
                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY || Info.blocked) return $.Deferred().resolve();
-                        return BiliPushUtils.Gift.fishingCheck(roomid).then((fishing) => {
+                        return BiliPushUtils.BaseRoomAction(roomid).then((fishing) => {
                             if (!fishing) {
                                 return API.Lottery.Gift.check(roomid).then((response) => {
                                     DEBUG('BiliPushUtils.Gift.run: API.Lottery.Gift.check', response);
@@ -2598,16 +2602,20 @@
                 run: (roomid) => {
                     try {
                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD || Info.blocked) return $.Deferred().resolve();
-                        return API.Lottery.Guard.check(roomid).then((response) => {
-                            DEBUG('BiliPushUtils.Guard.run: API.Lottery.Guard.check', response);
-                            if (response.code === 0) {
-                                return BiliPushUtils.Guard.join(roomid, response.data);
-                            } else {
-                                window.toast(`[自动抽奖][舰队领奖](roomid=${roomid})${response.msg}`, 'caution');
+                        return BiliPushUtils.BaseRoomAction(roomid).then((fishing) => {
+                            if (!fishing) {
+                                return API.Lottery.Guard.check(roomid).then((response) => {
+                                    DEBUG('BiliPushUtils.Guard.run: API.Lottery.Guard.check', response);
+                                    if (response.code === 0) {
+                                        return BiliPushUtils.Guard.join(roomid, response.data);
+                                    } else {
+                                        window.toast(`[自动抽奖][舰队领奖](roomid=${roomid})${response.msg}`, 'caution');
+                                    }
+                                }, () => {
+                                    window.toast(`[自动抽奖][舰队领奖]检查直播间(${roomid})失败，请检查网络`, 'error');
+                                    return delayCall(() => BiliPushUtils.Guard.run(roomid));
+                                });
                             }
-                        }, () => {
-                            window.toast(`[自动抽奖][舰队领奖]检查直播间(${roomid})失败，请检查网络`, 'error');
-                            return delayCall(() => BiliPushUtils.Guard.run(roomid));
                         });
                     } catch (err) {
                         window.toast('[自动抽奖][舰队领奖]运行时出现异常', 'error');
