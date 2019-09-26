@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.3.3
+// @version      2.4.3.4
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @homepageURL  https://github.com/SeaLoong/Bilibili-LRHH
@@ -10,8 +10,8 @@
 // @include      /https?:\/\/live\.bilibili\.com\/blanc\d+\??.*/
 // @include      /https?:\/\/api\.live\.bilibili\.com\/_.*/
 // @require      https://code.jquery.com/jquery-3.3.1.min.js
-// @require      https://js-1258131272.file.myqcloud.com/BilibiliAPI.js
-// @require      https://js-1258131272.file.myqcloud.com/OCRAD.min.js
+// @require      https://greasyfork.org/scripts/390500-bilibiliapi-plus/code/BilibiliAPI_Plus.js?version=736095
+// @require      https://greasyfork.org/scripts/44866-ocrad/code/OCRAD.js
 // @grant        none
 // @run-at       document-start
 // @license      MIT License
@@ -19,21 +19,22 @@
 
 /*
 [greasyfork源]
-// @require      https://greasyfork.org/scripts/38140-bilibiliapi/code/BilibiliAPI.js
+// @require      https://greasyfork.org/scripts/390500-bilibiliapi-plus/code/BilibiliAPI_Plus.js?version=736095
 // @require      https://greasyfork.org/scripts/44866-ocrad/code/OCRAD.js
 [github源]
-// @require      https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/BilibiliAPI.js
+// @require      https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/pjy612-patch-1/BilibiliAPI_Plus.js
 // @require      https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/OCRAD.min.js
 [gitee源]
-// @require      https://gitee.com/SeaLoong/Bilibili-LRHH/raw/master/BilibiliAPI.js
+
 // @require      https://gitee.com/SeaLoong/Bilibili-LRHH/raw/master/OCRAD.min.js
 [腾讯云源]
-// @require      https://js-1258131272.file.myqcloud.com/BilibiliAPI.js
+
 // @require      https://js-1258131272.file.myqcloud.com/OCRAD.min.js
 [jsDelivr源]
-// @require      https://cdn.jsdelivr.net/gh/SeaLoong/Bilibili-LRHH/BilibiliAPI.js
+
 // @require      https://cdn.jsdelivr.net/gh/SeaLoong/Bilibili-LRHH/OCRAD.min.js
 */
+
 
 (function BLRHH() {
     'use strict';
@@ -335,7 +336,7 @@
                         DEBUG('listen: API.room.getConf', response);
                         server_host = 'broadcastlv.chat.bilibili.com';
                         if (response.data.host_server_list.length > 1) server_host = response.data.host_server_list[Math.round(Math.random() * 100) % (response.data.host_server_list.length - 1)].host;
-                        Lottery.ws = new API.DanmuWebSocket(Info.uid, window.frameElement[NAME].roomid, `wss://${server_host}/sub`);
+                        Lottery.ws = new API.DanmuWebSocket(Info.uid, window.frameElement[NAME].roomid, `wss://${server_host}/sub`,response.data.host_server_list);
                         Lottery.ws.bind((ws) => {
                             Lottery.ws = ws;
                         }, () => {
@@ -2084,7 +2085,7 @@
                     if (Info.blocked) return;
                     let server_host = 'broadcastlv.chat.bilibili.com';
                     if (response.data.host_server_list.length > 1) server_host = response.data.host_server_list[Math.round(Math.random() * 100) % (response.data.host_server_list.length - 1)].host;
-                    let ws = new API.DanmuWebSocket(uid, roomid, `wss://${server_host}/sub`);
+                    let ws = new API.DanmuWebSocket(uid, roomid, `wss://${server_host}/sub`,response.data.host_server_list);
                     let id = 0;
                     if (volatile) id = Lottery.Guard.wsList.push(ws);
                     ws.bind((newws) => {

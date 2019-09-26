@@ -1108,7 +1108,7 @@ var BilibiliAPI = {
                             let server_host = serveraddressList[Math.round(Math.random() * 100) % (serveraddressList.length - 1)].host;
                             newWsUrl = `wss://${server_host}/sub`;
                         }while(beforeWsUrl==newWsUrl);
-                        console.table([{roomId:roomid,beforeWs:beforeWsUrl,newWs:newWsUrl}]);
+                        //console.table([{roomId:roomid,beforeWs:beforeWsUrl,newWs:newWsUrl}]);
                     }
                     const ws = new BilibiliAPI.DanmuWebSocket(uid, roomid, newWsUrl,serveraddressList);
                     ws.handlers = this.handlers;
