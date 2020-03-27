@@ -19,6 +19,8 @@
 // ==/UserScript==
 /*
 瓜子初始化失败问题自行替换上方对应OCRAD源
+[greasyfork源]
+// @require      https://greasyfork.org/scripts/44866-ocrad/code/OCRAD.js
 [github源]
 // @require      https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/OCRAD.min.js
 [gitee源]
