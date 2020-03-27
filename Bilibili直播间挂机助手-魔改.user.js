@@ -4,8 +4,10 @@
 // @version      2.4.4.6
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
-// @homepageURL  https://github.com/SeaLoong/Bilibili-LRHH
-// @supportURL   https://github.com/SeaLoong/Bilibili-LRHH/issues
+// @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @downloadURL  https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @homepageURL  https://github.com/pjy612/Bilibili-LRHH
+// @supportURL   https://github.com/pjy612/Bilibili-LRHH/issues
 // @include      /https?:\/\/live\.bilibili\.com\/[^?]*?\d+\??.*/
 // @include      /https?:\/\/api\.live\.bilibili\.com\/_.*/
 // @require      https://code.jquery.com/jquery-3.3.1.min.js
