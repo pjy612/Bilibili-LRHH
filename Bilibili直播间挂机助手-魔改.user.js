@@ -2954,7 +2954,7 @@
                                     BiliPushUtils.up();
                                     window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                                 } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
-                                    return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId),1e3);
+                                    return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId, type),1e3);
                                 } else {
                                     window.toast(`[自动抽奖][礼物抽奖](roomid=${roomid},id=${raffleId},type=${type})${response.msg}`, 'caution');
                                 }
