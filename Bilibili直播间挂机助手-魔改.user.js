@@ -2416,6 +2416,17 @@
             pkIdSet:new Set(),
             stormBlack:false,
             stormQueue:[],
+            msgIgnore:(msg)=>{
+                if(msg){
+                    let ignoreList=['操作太快','稍后再试','请求太多','频繁','繁忙'];
+                    for(let ignore of ignoreList){
+                        if(msg.indexOf(ignore)>-1){
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            },
             clearSet:()=>{
                 if(BiliPushUtils.raffleIdSet.size>1000){BiliPushUtils.raffleIdSet.clear();}
                 if(BiliPushUtils.guardIdSet.size>1000){BiliPushUtils.guardIdSet.clear();}
@@ -2897,7 +2908,7 @@
                             Info.blocked = true;
                             BiliPushUtils.up();
                             window.toast('[自动抽奖][乱斗领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
-                        } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
+                        } else if (BiliPushUtils.msgIgnore(response.msg)) {
                             return delayCall(() => BiliPushUtils.Pk._join(roomid, id),1e3);
                         } else if (response.msg.indexOf('过期') > -1) {
                         } else {
@@ -2953,7 +2964,7 @@
                                     Info.blocked = true;
                                     BiliPushUtils.up();
                                     window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
-                                } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
+                                } else if (BiliPushUtils.msgIgnore(response.msg)) {
                                     return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId, type),1e3);
                                 } else {
                                     window.toast(`[自动抽奖][礼物抽奖](roomid=${roomid},id=${raffleId},type=${type})${response.msg}`, 'caution');
@@ -2995,7 +3006,7 @@
                             Info.blocked = true;
                             BiliPushUtils.up();
                             window.toast('[自动抽奖][舰队领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
-                        } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
+                        } else if (BiliPushUtils.msgIgnore(response.msg)) {
                             return delayCall(() => BiliPushUtils.Guard._join(roomid, id),1e3);
                         } else if (response.msg.indexOf('过期') > -1) {
                         } else {
