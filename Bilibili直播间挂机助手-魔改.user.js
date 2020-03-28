@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.6
+// @version      2.4.4.7
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -30,10 +30,10 @@
 [jsDelivr源]
 // @require      https://cdn.jsdelivr.net/gh/SeaLoong/Bilibili-LRHH/OCRAD.min.js
 */
-(function BLRHH() {
+(function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.6';
+    const VERSION = '2.4.4.7';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2871,6 +2871,10 @@
                     if (i >= ids.length) return $.Deferred().resolve();
                     const obj = ids[i];
                     if (obj.status === 1) {
+                        // id过滤，防止重复参加
+                        var id = parseInt(obj.id, 10);
+                        if (BiliPushUtils.pkIdSet.has(id)) return $.Deferred().resolve();
+                        BiliPushUtils.pkIdSet.add(id); // 加入id记录列表
                         return BiliPushUtils.Pk._join(roomid, obj.id).then(() => BiliPushUtils.Pk.join(roomid, ids, i + 1));
                     }
                     return BiliPushUtils.Pk.join(roomid, ids, i + 1);
@@ -2880,9 +2884,6 @@
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
-                    // id过滤，防止重复参加
-                    if (BiliPushUtils.pkIdSet.has(id)) return $.Deferred().resolve();
-                    BiliPushUtils.pkIdSet.add(id); // 加入id记录列表
                     return BiliPushUtils.API.Pk.join(roomid, id).then((response) => {
                         DEBUG('BiliPushUtils.Pk._join: BiliPushUtils.API.Pk.join', response);
                         if (response.code === 0) {
@@ -2896,7 +2897,7 @@
                             Info.blocked = true;
                             BiliPushUtils.up();
                             window.toast('[自动抽奖][乱斗领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
-                        } else if (response.msg.indexOf('快') > -1) {
+                        } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
                             return delayCall(() => BiliPushUtils.Pk._join(roomid, id));
                         } else if (response.msg.indexOf('过期') > -1) {
                         } else {
@@ -2916,6 +2917,10 @@
                     if (i >= raffleList.length) return $.Deferred().resolve();
                     const obj = raffleList[i];
                     if (obj.status === 1) { // 可以参加
+                        // raffleId过滤，防止重复参加
+                        var raffleId = parseInt(obj.raffleId, 10);
+                        if (BiliPushUtils.raffleIdSet.has(raffleId)) return $.Deferred().resolve();
+                        BiliPushUtils.raffleIdSet.add(raffleId); // 加入raffleId记录列表
                         return BiliPushUtils.Gift._join(roomid, obj.raffleId, obj.type, obj.time_wait).then(() => BiliPushUtils.Gift.join(roomid, raffleList, i + 1));
                     } else if (obj.status === 2 && obj.time > 0) { // 已参加且未开奖
                     }
@@ -2926,9 +2931,6 @@
                     roomid = parseInt(roomid, 10);
                     raffleId = parseInt(raffleId, 10);
                     if (isNaN(roomid) || isNaN(raffleId)) return $.Deferred().reject();
-                    // raffleId过滤，防止重复参加
-                    if (BiliPushUtils.raffleIdSet.has(raffleId)) return $.Deferred().resolve();
-                    BiliPushUtils.raffleIdSet.add(raffleId); // 加入raffleId记录列表
                     window.toast(`[自动抽奖][礼物抽奖]等待抽奖(roomid=${roomid},id=${raffleId},type=${type},time_wait=${time_wait})`, 'success');
                     return delayCall(() => BiliPushUtils.API.Gift.join(roomid, raffleId, type).then((response) => {
                         DEBUG('BiliPushUtils.Gift._join: BiliPushUtils.API.Gift.join', response);
@@ -2951,7 +2953,7 @@
                                     Info.blocked = true;
                                     BiliPushUtils.up();
                                     window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
-                                } else if (response.msg.indexOf('快') > -1) {
+                                } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
                                     return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId));
                                 } else {
                                     window.toast(`[自动抽奖][礼物抽奖](roomid=${roomid},id=${raffleId},type=${type})${response.msg}`, 'caution');
@@ -2971,6 +2973,10 @@
                     if (i >= guard.length) return $.Deferred().resolve();
                     const obj = guard[i];
                     if (obj.status === 1) {
+                        // id过滤，防止重复参加
+                        var id = parseInt(obj.id, 10);
+                        if (BiliPushUtils.guardIdSet.has(id)) return $.Deferred().resolve();
+                        BiliPushUtils.guardIdSet.add(id); // 加入id记录列表
                         return BiliPushUtils.Guard._join(roomid, obj.id).then(() => BiliPushUtils.Guard.join(roomid, guard, i + 1));
                     }
                     return BiliPushUtils.Guard.join(roomid, guard, i + 1);
@@ -2980,9 +2986,6 @@
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
-                    // id过滤，防止重复参加
-                    if (BiliPushUtils.guardIdSet.has(id)) return $.Deferred().resolve();
-                    BiliPushUtils.guardIdSet.add(id); // 加入id记录列表
                     return BiliPushUtils.API.Guard.join(roomid, id).then((response) => {
                         DEBUG('BiliPushUtils.Guard._join: BiliPushUtils.API.Guard.join', response);
                         if (response.code === 0) {
@@ -2992,7 +2995,7 @@
                             Info.blocked = true;
                             BiliPushUtils.up();
                             window.toast('[自动抽奖][舰队领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
-                        } else if (response.msg.indexOf('快') > -1) {
+                        } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
                             return delayCall(() => BiliPushUtils.Guard._join(roomid, id));
                         } else if (response.msg.indexOf('过期') > -1) {
                         } else {
