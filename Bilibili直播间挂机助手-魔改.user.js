@@ -2898,7 +2898,7 @@
                             BiliPushUtils.up();
                             window.toast('[自动抽奖][乱斗领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                         } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
-                            return delayCall(() => BiliPushUtils.Pk._join(roomid, id));
+                            return delayCall(() => BiliPushUtils.Pk._join(roomid, id),1e3);
                         } else if (response.msg.indexOf('过期') > -1) {
                         } else {
                             window.toast(`[自动抽奖][乱斗领奖](roomid=${roomid},id=${id})${response.msg}`, 'caution');
@@ -2954,7 +2954,7 @@
                                     BiliPushUtils.up();
                                     window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                                 } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
-                                    return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId));
+                                    return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId),1e3);
                                 } else {
                                     window.toast(`[自动抽奖][礼物抽奖](roomid=${roomid},id=${raffleId},type=${type})${response.msg}`, 'caution');
                                 }
@@ -2996,7 +2996,7 @@
                             BiliPushUtils.up();
                             window.toast('[自动抽奖][舰队领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                         } else if (response.msg.indexOf('快') > -1||response.msg.indexOf('繁') > -1) {
-                            return delayCall(() => BiliPushUtils.Guard._join(roomid, id));
+                            return delayCall(() => BiliPushUtils.Guard._join(roomid, id),1e3);
                         } else if (response.msg.indexOf('过期') > -1) {
                         } else {
                             window.toast(`[自动抽奖][舰队领奖](roomid=${roomid},id=${id})${response.msg}`, 'caution');
