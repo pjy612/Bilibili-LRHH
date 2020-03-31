@@ -12,7 +12,7 @@
 // @include      /https?:\/\/api\.live\.bilibili\.com\/_.*/
 // @require      https://code.jquery.com/jquery-3.3.1.min.js
 // @require      https://greasyfork.org/scripts/390500-bilibiliapi-plus/code/BilibiliAPI_Plus.js
-// @require      https://js-1258131272.file.myqcloud.com/OCRAD.min.js
+// @require      https://greasyfork.org/scripts/44866-ocrad/code/OCRAD.js
 // @run-at       document-start
 // @license      MIT License
 // @grant        none
