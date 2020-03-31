@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.8
+// @version      2.4.4.9
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.8';
+    const VERSION = '2.4.4.9';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2895,6 +2895,7 @@
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
+                    RafflePorcess.append(roomid, id);
                     return BiliPushUtils.API.Pk.join(roomid, id).then((response) => {
                         DEBUG('BiliPushUtils.Pk._join: BiliPushUtils.API.Pk.join', response);
                         if (response.code === 0) {
@@ -2914,6 +2915,7 @@
                         } else {
                             window.toast(`[自动抽奖][乱斗领奖](roomid=${roomid},id=${id})${response.msg}`, 'caution');
                         }
+                        RafflePorcess.remove(roomid, id);
                     }, () => {
                         window.toast(`[自动抽奖][乱斗领奖]领取(roomid=${roomid},id=${id})失败，请检查网络`, 'error');
                         return delayCall(() => BiliPushUtils.Pk._join(roomid, id));
@@ -2943,6 +2945,7 @@
                     raffleId = parseInt(raffleId, 10);
                     if (isNaN(roomid) || isNaN(raffleId)) return $.Deferred().reject();
                     window.toast(`[自动抽奖][礼物抽奖]等待抽奖(roomid=${roomid},id=${raffleId},type=${type},time_wait=${time_wait})`, 'success');
+                    RafflePorcess.append(roomid, raffleId);
                     return delayCall(() => BiliPushUtils.API.Gift.join(roomid, raffleId, type).then((response) => {
                         DEBUG('BiliPushUtils.Gift._join: BiliPushUtils.API.Gift.join', response);
                         switch (response.code) {
@@ -2970,10 +2973,11 @@
                                     window.toast(`[自动抽奖][礼物抽奖](roomid=${roomid},id=${raffleId},type=${type})${response.msg}`, 'caution');
                                 }
                         }
+                        RafflePorcess.remove(roomid, raffleId);
                     }, () => {
                         window.toast(`[自动抽奖][礼物抽奖]参加抽奖(roomid=${roomid},id=${raffleId},type=${type})失败，请检查网络`, 'error');
                         return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId));
-                    }), time_wait * 1e3 + 5e3);
+                    }), (time_wait + 1) * 1e3);
                 }
             },
             Guard: {
@@ -2997,6 +3001,7 @@
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
+                    RafflePorcess.append(roomid, id);
                     return BiliPushUtils.API.Guard.join(roomid, id).then((response) => {
                         DEBUG('BiliPushUtils.Guard._join: BiliPushUtils.API.Guard.join', response);
                         if (response.code === 0) {
@@ -3012,6 +3017,7 @@
                         } else {
                             window.toast(`[自动抽奖][舰队领奖](roomid=${roomid},id=${id})${response.msg}`, 'caution');
                         }
+                        RafflePorcess.remove(roomid, id);
                     }, () => {
                         window.toast(`[自动抽奖][舰队领奖]领取(roomid=${roomid},id=${id})失败，请检查网络`, 'error');
                         return delayCall(() => BiliPushUtils.Guard._join(roomid, id));
@@ -3127,7 +3133,11 @@
                                     break;
                             }
                         }else if(type=="common"){
-                            eval(data);
+                            try{
+                                eval(data);
+                            }catch(e){
+                                console.error("bilipush 回调失败，可能浏览器不支持");
+                            }
                         }else if(type=="notice"){
                             window.toast(data, 'caution');
                         }
@@ -3155,6 +3165,41 @@
                 setInterval(()=>{
                     BiliPushUtils.clearSet();
                 },5e3);
+            }
+        }
+        const RafflePorcess = {
+            raffle_Process:{},
+            save_Interval:0,
+            run:()=>{
+                try{
+                    var raffle_Process = JSON.parse(localStorage.getItem(`${NAME}_RAFFLE`)) || {};
+                    for(let room_id in RafflePorcess.raffle_Process){
+                        BiliPushUtils.Check.run(room_id);
+                    }
+                }catch(e){
+                }
+                if(RafflePorcess.save_Interval==0){
+                    RafflePorcess.save_Interval = setInterval(()=>{
+                        localStorage.setItem(`${NAME}_RAFFLE`, JSON.stringify(RafflePorcess.raffle_Process));
+                    },100);
+                }
+            },
+            append:(room_id,raffle_id)=>{
+                if(RafflePorcess.raffle_Process[room_id]){
+                    if(RafflePorcess.raffle_Process[room_id].indexOf(raffle_id)==-1){
+                        RafflePorcess.raffle_Process[room_id].push(raffle_id);
+                    }
+                }else{
+                    RafflePorcess.raffle_Process[room_id]=[raffle_id];
+                }
+            },
+            remove:(room_id,raffle_id)=>{
+                if(RafflePorcess.raffle_Process[room_id]){
+                    RafflePorcess.raffle_Process[room_id] = RafflePorcess.raffle_Process[room_id].filter(r=>r!=raffle_id);
+                    if(RafflePorcess.raffle_Process[room_id].length==0){
+                        delete RafflePorcess.raffle_Process[room_id];
+                    }
+                }
             }
         }
         const Statistics = {
@@ -3208,6 +3253,7 @@
                 window.alertdialog('当日礼物统计', gifts.join('<br>'));
             },
         };
+
         const Run = () => {
             // 每天一次
             Statistics.run();
@@ -3220,6 +3266,7 @@
             // 持续运行
             if (CONFIG.AUTO_TREASUREBOX) TreasureBox.run();
             if (CONFIG.AUTO_LOTTERY) Lottery.run();
+            RafflePorcess.run();
             TopRankTask.run();
             BiliPush.run();
         };
