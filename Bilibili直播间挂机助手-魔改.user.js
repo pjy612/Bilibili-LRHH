@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.9
+// @version      2.4.4.14
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -12,7 +12,7 @@
 // @include      /https?:\/\/api\.live\.bilibili\.com\/_.*/
 // @require      https://code.jquery.com/jquery-3.3.1.min.js
 // @require      https://greasyfork.org/scripts/390500-bilibiliapi-plus/code/BilibiliAPI_Plus.js
-// @require      https://greasyfork.org/scripts/44866-ocrad/code/OCRAD.js
+// @require      https://js-1258131272.file.myqcloud.com/OCRAD.min.js
 // @run-at       document-start
 // @license      MIT License
 // @grant        none
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.9';
+    const VERSION = '2.4.4.14';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -82,7 +82,8 @@
         identification: undefined,
         gift_list: undefined,
         gift_list_str: '礼物对照表',
-        blocked: false
+        blocked: false,
+        awardBlocked:false
     };
 
     const tz_offset = new Date().getTimezoneOffset() + 480;
@@ -182,6 +183,8 @@
                     signInList: (list, i = 0) => {
                         if (i >= list.length) return $.Deferred().resolve();
                         const obj = list[i];
+                        //自己不能给自己的应援团应援
+                        if(obj.owner_uid==Info.uid) return $.Deferred().resolve();
                         return API.Group.sign_in(obj.group_id, obj.owner_uid).then((response) => {
                             DEBUG('GroupSign.signInList: API.Group.sign_in', response);
                             const p = $.Deferred();
@@ -1486,8 +1489,8 @@
             run: () => {
                 try {
                     if (!CONFIG.AUTO_TREASUREBOX || !TreasureBox.timer) return;
-                    if (Info.blocked) {
-                        TreasureBox.setMsg('小黑屋');
+                    if (Info.awardBlocked) {
+                        TreasureBox.setMsg('瓜子小黑屋');
                         window.toast('[自动领取瓜子]帐号被关小黑屋，停止领取瓜子', 'caution');
                         return;
                     }
@@ -1577,7 +1580,7 @@
                             return p;
                         case 400: // 400: 访问被拒绝
                             if (response.msg.indexOf('拒绝') > -1) {
-                                Info.blocked = true;
+                                Info.awardBlocked = true;
                                 Essential.DataSync.down();
                                 TreasureBox.setMsg('拒绝<br>访问');
                                 window.toast('[自动领取瓜子]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
@@ -1760,7 +1763,7 @@
             listenSet: new Set(),
             Gift: {
                 _join: (roomid, raffleId, type, time_wait = 0) => {
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     roomid = parseInt(roomid, 10);
                     raffleId = parseInt(raffleId, 10);
                     if (isNaN(roomid) || isNaN(raffleId)) return $.Deferred().reject();
@@ -1775,15 +1778,15 @@
                                 break;
                             case 65531:
                                 // 65531: 非当前直播间或短ID直播间试图参加抽奖
-                                Info.blocked = true;
+                                //Info.blocked = true;
                                 Essential.DataSync.down();
                                 window.toast(`[自动抽奖][礼物抽奖]参加抽奖(roomid=${roomid},id=${raffleId},type=${type})失败，已停止`, 'error');
                                 break;
                             default:
                                 if (response.msg.indexOf('拒绝') > -1) {
-                                    Info.blocked = true;
-                                    Essential.DataSync.down();
-                                    window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
+                                    //Info.blocked = true;
+                                    //Essential.DataSync.down();
+                                    //window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                                 } else if (response.msg.indexOf('快') > -1) {
                                     return delayCall(() => Lottery.Gift._join(roomid, raffleId));
                                 } else {
@@ -1799,7 +1802,7 @@
             Guard: {
                 wsList: [],
                 _join: (roomid, id) => {
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
@@ -1808,9 +1811,9 @@
                         if (response.code === 0) {
                             window.toast(`[自动抽奖][舰队领奖]领取(roomid=${roomid},id=${id})成功`, 'success');
                         } else if (response.msg.indexOf('拒绝') > -1) {
-                            Info.blocked = true;
-                            Essential.DataSync.down();
-                            window.toast('[自动抽奖][舰队领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
+                            //Info.blocked = true;
+                            //Essential.DataSync.down();
+                            //window.toast('[自动抽奖][舰队领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                         } else if (response.msg.indexOf('快') > -1) {
                             return delayCall(() => Lottery.Guard._join(roomid, id));
                         } else if (response.msg.indexOf('过期') > -1) {
@@ -2022,7 +2025,7 @@
                 Lottery.listenSet.add(roomid);
                 return API.room.getConf(roomid).then((response) => {
                     DEBUG('Lottery.listen: API.room.getConf', response);
-                    if (Info.blocked) return;
+                    //if (Info.blocked) return;
                     let ws = new API.DanmuWebSocket(uid, roomid, response.data.host_server_list, response.data.token);
                     let id = 0;
                     if (volatile) id = Lottery.Guard.wsList.push(ws);
@@ -2034,10 +2037,10 @@
                         //if (CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY || CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) Lottery.create(roomid, roomid, 'LOTTERY');
                     }, (num) => {
                         //console.log(`房间${roomid}，人气值：${num}`);
-                        if (Info.blocked) {
-                            ws.close();
-                            window.toast(`[自动抽奖]${area}(${roomid})主动与弹幕服务器断开连接`, 'info');
-                        }
+                        //if (Info.blocked) {
+                        //    ws.close();
+                        //    window.toast(`[自动抽奖]${area}(${roomid})主动与弹幕服务器断开连接`, 'info');
+                        //}
                     }, (obj, str) => {
                         switch (obj.cmd) {
                             case 'DANMU_MSG':
@@ -2062,14 +2065,14 @@
                                         // 礼物抽奖
                                         if (!CONFIG.AUTO_LOTTERY) break;
                                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY) break;
-                                        if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
+                                        //if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
                                         BiliPushUtils.Gift.run(obj.real_roomid);
                                         break;
                                     case 3:
                                         // 舰队领奖
                                         if (!CONFIG.AUTO_LOTTERY) break;
                                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) break;
-                                        if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
+                                        //if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
                                         BiliPushUtils.Guard.run(obj.real_roomid);
                                         break;
                                     case 4:
@@ -2081,7 +2084,7 @@
                                     case 6:
                                         // 节奏风暴
                                         if (!CONFIG.AUTO_LOTTERY) break;
-                                        if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
+                                        //if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
                                         BiliPushUtils.Storm.run(roomid);
                                         break;
                                 }
@@ -2090,7 +2093,7 @@
                                 DEBUG(`DanmuWebSocket${area}(${roomid})`, str);
                                 if (!CONFIG.AUTO_LOTTERY) break;
                                 if (!CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) break;
-                                if (Info.blocked || !obj.data.roomid || !obj.data.lottery.id) break;
+                                //if (Info.blocked || !obj.data.roomid || !obj.data.lottery.id) break;
                                 if (obj.data.roomid === Info.roomid) {
                                     Lottery.Guard._join(Info.roomid, obj.data.lottery.id);
                                 }
@@ -2103,7 +2106,7 @@
                                 DEBUG(`DanmuWebSocket${area}(${roomid})`, str);
                                 if (!CONFIG.AUTO_LOTTERY) break;
                                 if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY) break;
-                                if (Info.blocked || !obj.data.msg.roomid || !obj.data.msg.real_roomid || !obj.data.raffleId) break;
+                                //if (Info.blocked || !obj.data.msg.roomid || !obj.data.msg.real_roomid || !obj.data.raffleId) break;
                                 if (obj.data.msg.real_roomid === Info.roomid)
                                 {
                                     Lottery.Gift._join(Info.roomid, obj.data.raffleId, obj.data.type, obj.data.time_wait);
@@ -2133,7 +2136,7 @@
                 }, () => delayCall(() => Lottery.listen(uid, roomid, area, volatile)));
             },
             listenAll: () => {
-                if (Info.blocked) return;
+                //if (Info.blocked) return;
                 if (!Lottery.hasWS) {
                     Lottery.listen(Info.uid, Info.roomid, '', true, false);
                     Lottery.hasWS = true;
@@ -2164,8 +2167,8 @@
                 try {
                     if (!CONFIG.AUTO_LOTTERY) return;
                     if (Info.blocked) {
-                        window.toast('[自动抽奖]帐号被关小黑屋，停止自动抽奖', 'caution');
-                        return;
+                        //window.toast('[自动抽奖]帐号被关小黑屋，停止自动抽奖', 'caution');
+                        //return;
                     }
                     if (CONFIG.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY) Lottery.MaterialObject.run();
                     if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) {
@@ -2372,11 +2375,14 @@
             process:async()=>{
                 try{
                     let roomSet = new Set();
-                    let rankList = [await BiliPushUtils.API.LiveRank.topRank(),await BiliPushUtils.API.LiveRank.areaRank(0)];
+                    let toprank = await delayCall(() => BiliPushUtils.API.LiveRank.topRank(),1000);
+                    let areaRank = await delayCall(() => BiliPushUtils.API.LiveRank.areaRank(0),1000);
+                    let rankList = [toprank,areaRank];
                     let getListRsp = await API.room.getList();
                     if(getListRsp.code==0 && getListRsp.data){
                         for(let areaInfo of getListRsp.data){
-                            rankList.push(await BiliPushUtils.API.LiveRank.areaRank(areaInfo.id));
+                            let areaRank = await delayCall(() => BiliPushUtils.API.LiveRank.areaRank(areaInfo.id),1000)
+                            rankList.push(areaRank);
                         }
                     }
                     for(let rsp of rankList){
@@ -2389,7 +2395,7 @@
                     for(let roomid of roomSet){
                         await delayCall(() => BiliPushUtils.Check.run(roomid),200);
                     }
-                    await delayCall(() => TopRankTask.run(),60e3);
+                    await delayCall(() => TopRankTask.run(), 1.5*60e3);
                 } catch (err) {
                     console.error(`[${NAME}]`, err);
                     return delayCall(() => TopRankTask.run());
@@ -2399,7 +2405,7 @@
             run: async() => {
                 try {
                     if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) return $.Deferred().resolve();
                     await TopRankTask.process();
                 } catch (err) {
@@ -2428,9 +2434,19 @@
                 return false;
             },
             clearSet:()=>{
-                if(BiliPushUtils.raffleIdSet.size>1000){BiliPushUtils.raffleIdSet.clear();}
-                if(BiliPushUtils.guardIdSet.size>1000){BiliPushUtils.guardIdSet.clear();}
-                if(BiliPushUtils.pkIdSet.size>1000){BiliPushUtils.pkIdSet.clear();}
+                BiliPushUtils.splitSet(BiliPushUtils.raffleIdSet,1500,2);
+                BiliPushUtils.splitSet(BiliPushUtils.guardIdSet,200,2);
+                BiliPushUtils.splitSet(BiliPushUtils.pkIdSet,200,2);
+            },
+            splitSet:(set,limit,rate=2)=>{
+                if(set && set.size>limit){
+                    let end = limit/rate;
+                    for(let item of set.entries()){
+                        if(item[0]<=end){
+                            set.delete(item[1]);
+                        }
+                    }
+                }
             },
             up:() => {
                 window.parent[NAME].Info = Info;
@@ -2442,7 +2458,7 @@
             processing:0,
             ajax: (setting,roomid) => {
                 const p = jQuery.Deferred();
-                API.runUntilSucceed(() => {
+                runUntilSucceed(() => {
                     if (BiliPushUtils.processing > 8) return false;
                     ++BiliPushUtils.processing;
                     return BiliPushUtils._ajax(setting).then((arg1, arg2, arg3) => {
@@ -2489,7 +2505,7 @@
             },
             corsAjax:(setting)=>{
                 const p = jQuery.Deferred();
-                API.runUntilSucceed(() => {
+                runUntilSucceed(() => {
                     let option = BiliPushUtils._corsAjaxSetting(setting);
                     option.onload=(rsp)=>{
                         p.resolve(rsp);
@@ -2674,18 +2690,26 @@
             },
             Check:{
                 roomSet:new Set(),
-                start:()=>{
-                    var tmp = Array.from(BiliPushUtils.Check.roomSet);
-                    for(var room_id of tmp){
-                        BiliPushUtils.Check.roomSet.delete(room_id);
-                        BiliPushUtils.Check.process(room_id);
+                roomRankSet:new Set(),
+                start:async ()=>{
+                    try{
+                        var tmp = Array.from(BiliPushUtils.Check.roomSet);
+                        for(let room_id of tmp){
+                            if(BiliPushUtils.Check.roomSet.has(room_id)){
+                                BiliPushUtils.Check.roomSet.delete(room_id);
+                                await delayCall(() => BiliPushUtils.Check.process(room_id),100);
+                            }
+                        }
+                        setTimeout(()=>BiliPushUtils.Check.start(),200);
+                        return $.Deferred().resolve();
+                    }catch(e){
+                        setTimeout(()=>BiliPushUtils.Check.start(),200);
+                        return $.Deferred().reject();
                     }
-                    setTimeout(()=>BiliPushUtils.Check.start(),200);
-                    return $.Deferred().resolve();
                 },
                 run:(roomid) => {
                     if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) return $.Deferred().resolve();
                     BiliPushUtils.Check.roomSet.add(roomid);
                     return $.Deferred().resolve();
@@ -2693,8 +2717,9 @@
                 process:(roomid) => {
                     try {
                         if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
-                        if (Info.blocked) return $.Deferred().resolve();
+                        //if (Info.blocked) return $.Deferred().resolve();
                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) return $.Deferred().resolve();
+                        BiliPushUtils.Check.roomSet.delete(roomid);
                         return BiliPushUtils.BaseRoomAction(roomid).then((fishing) => {
                             if (!fishing) {
                                 return BiliPushUtils.API.Check.check(roomid).then((response) => {
@@ -2755,7 +2780,7 @@
                 run:(roomid)=>{
                     try {
                         if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
-                        if (Info.blocked) return $.Deferred().resolve();
+                        //if (Info.blocked) return $.Deferred().resolve();
                         if(BiliPushUtils.stormBlack) return $.Deferred().resolve();
                         if(!CONFIG.AUTO_LOTTERY_CONFIG.STORM) return $.Deferred().resolve();
                         return BiliPushUtils.API.Storm.check(roomid).then((response) => {
@@ -2778,7 +2803,7 @@
                     }
                 },
                 join:(id,roomid,endtime)=>{
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
@@ -2878,7 +2903,7 @@
                 join: (roomid, ids, i = 0) => {
                     //console.log(`Pk.join`,roomid,ids,i)
                     if (!ids) return $.Deferred().resolve();
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     if (i >= ids.length) return $.Deferred().resolve();
                     const obj = ids[i];
                     if (obj.status === 1) {
@@ -2891,7 +2916,7 @@
                     return BiliPushUtils.Pk.join(roomid, ids, i + 1);
                 },
                 _join: (roomid, id) => {
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
@@ -2906,9 +2931,9 @@
                             }
                             window.toast(`[自动抽奖][乱斗领奖]领取(roomid=${roomid},id=${id})成功,${response.data.award_text}`, 'success');
                         } else if (response.msg.indexOf('拒绝') > -1) {
-                            Info.blocked = true;
-                            BiliPushUtils.up();
-                            window.toast('[自动抽奖][乱斗领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
+                            //Info.blocked = true;
+                            //BiliPushUtils.up();
+                            //window.toast('[自动抽奖][乱斗领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                         } else if (BiliPushUtils.msgIgnore(response.msg)) {
                             return delayCall(() => BiliPushUtils.Pk._join(roomid, id),1e3);
                         } else if (response.msg.indexOf('过期') > -1) {
@@ -2926,7 +2951,7 @@
                 run:(roomid)=>(BiliPushUtils.Check.run(roomid)),
                 join: (roomid, raffleList, i = 0) => {
                     //console.log(`Gift.join`,roomid,raffleList,i)
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     if (i >= raffleList.length) return $.Deferred().resolve();
                     const obj = raffleList[i];
                     if (obj.status === 1) { // 可以参加
@@ -2940,10 +2965,13 @@
                     return BiliPushUtils.Gift.join(roomid, raffleList, i + 1);
                 },
                 _join: (roomid, raffleId, type, time_wait = 0) => {
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     roomid = parseInt(roomid, 10);
                     raffleId = parseInt(raffleId, 10);
                     if (isNaN(roomid) || isNaN(raffleId)) return $.Deferred().reject();
+                    if(!type){
+                        return delayCall(() => BiliPushUtils.Check.run(roomid));
+                    }
                     window.toast(`[自动抽奖][礼物抽奖]等待抽奖(roomid=${roomid},id=${raffleId},type=${type},time_wait=${time_wait})`, 'success');
                     RafflePorcess.append(roomid, raffleId);
                     return delayCall(() => BiliPushUtils.API.Gift.join(roomid, raffleId, type).then((response) => {
@@ -2958,15 +2986,15 @@
                                 break;
                             case 65531:
                                 // 65531: 非当前直播间或短ID直播间试图参加抽奖
-                                Info.blocked = true;
-                                BiliPushUtils.up();
-                                window.toast(`[自动抽奖][礼物抽奖]参加抽奖(roomid=${roomid},id=${raffleId},type=${type})失败，已停止`, 'error');
+                                //Info.blocked = true;
+                                //BiliPushUtils.up();
+                                //window.toast(`[自动抽奖][礼物抽奖]参加抽奖(roomid=${roomid},id=${raffleId},type=${type})失败，已停止`, 'error');
                                 break;
                             default:
                                 if (response.msg.indexOf('拒绝') > -1) {
-                                    Info.blocked = true;
-                                    BiliPushUtils.up();
-                                    window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
+                                    //Info.blocked = true;
+                                    //BiliPushUtils.up();
+                                    //window.toast('[自动抽奖][礼物抽奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                                 } else if (BiliPushUtils.msgIgnore(response.msg)) {
                                     return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId, type),1e3);
                                 } else {
@@ -2976,7 +3004,7 @@
                         RafflePorcess.remove(roomid, raffleId);
                     }, () => {
                         window.toast(`[自动抽奖][礼物抽奖]参加抽奖(roomid=${roomid},id=${raffleId},type=${type})失败，请检查网络`, 'error');
-                        return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId));
+                        return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId, type),1e3);
                     }), (time_wait + 1) * 1e3);
                 }
             },
@@ -2984,7 +3012,7 @@
                 run:(roomid)=>(BiliPushUtils.Check.run(roomid)),
                 join: (roomid, guard, i = 0) => {
                     //console.log(`Guard.join`,roomid,guard,i)
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     if (i >= guard.length) return $.Deferred().resolve();
                     const obj = guard[i];
                     if (obj.status === 1) {
@@ -2997,7 +3025,7 @@
                     return BiliPushUtils.Guard.join(roomid, guard, i + 1);
                 },
                 _join: (roomid, id) => {
-                    if (Info.blocked) return $.Deferred().resolve();
+                    //if (Info.blocked) return $.Deferred().resolve();
                     roomid = parseInt(roomid, 10);
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
@@ -3008,9 +3036,9 @@
                             Statistics.appendGift(response.data.award_name,response.data.award_num,response.data.award_ex_time);
                             window.toast(`[自动抽奖][舰队领奖]领取(roomid=${roomid},id=${id})成功,${response.data.award_name+"x"+response.data.award_num}`, 'success');
                         } else if (response.msg.indexOf('拒绝') > -1) {
-                            Info.blocked = true;
-                            BiliPushUtils.up();
-                            window.toast('[自动抽奖][舰队领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
+                            //Info.blocked = true;
+                            //BiliPushUtils.up();
+                            //window.toast('[自动抽奖][舰队领奖]访问被拒绝，您的帐号可能已经被关小黑屋，已停止', 'error');
                         } else if (BiliPushUtils.msgIgnore(response.msg)) {
                             return delayCall(() => BiliPushUtils.Guard._join(roomid, id),1e3);
                         } else if (response.msg.indexOf('过期') > -1) {
@@ -3125,7 +3153,7 @@
                                 case "PK":
                                 case "GIFT":
                                     window.toast(`bilipush 监控到 房间 ${room_id} 的礼物`, 'info');
-                                    BiliPushUtils.Check.run(room_id);
+                                    BiliPushUtils.Check.process(room_id);
                                     break;
                                 case "STORM":
                                     window.toast(`bilipush 监控到 房间 ${room_id} 的节奏风暴`, 'info');
