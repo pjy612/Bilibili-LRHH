@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.14
+// @version      2.4.4.15
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.14';
+    const VERSION = '2.4.4.15';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2404,10 +2404,24 @@
             },
             run: async() => {
                 try {
-                    if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
+                    let done = true;
+                    if (!CONFIG.AUTO_LOTTERY) {
+                        done = false;
+                    }
                     //if (Info.blocked) return $.Deferred().resolve();
-                    if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) return $.Deferred().resolve();
-                    await TopRankTask.process();
+                    if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD){
+                        done = false;
+                    }
+                    if(!BiliPush.connected){
+                        done = false;
+                    }
+                    if(!done){
+                        setTimeout(()=>TopRankTask.run(),5000);
+                        return $.Deferred().resolve();
+                    }else{
+                        await TopRankTask.process();
+                        return $.Deferred().resolve();
+                    }
                 } catch (err) {
                     window.toast('[直播小时榜]运行时出现异常，已停止', 'error');
                     console.error(`[${NAME}]`, err);
@@ -2697,13 +2711,13 @@
                         for(let room_id of tmp){
                             if(BiliPushUtils.Check.roomSet.has(room_id)){
                                 BiliPushUtils.Check.roomSet.delete(room_id);
-                                await delayCall(() => BiliPushUtils.Check.process(room_id),100);
+                                await delayCall(() => BiliPushUtils.Check.process(room_id),300);
                             }
                         }
-                        setTimeout(()=>BiliPushUtils.Check.start(),200);
+                        setTimeout(()=>BiliPushUtils.Check.start(),1000);
                         return $.Deferred().resolve();
                     }catch(e){
-                        setTimeout(()=>BiliPushUtils.Check.start(),200);
+                        setTimeout(()=>BiliPushUtils.Check.start(),1000);
                         return $.Deferred().reject();
                     }
                 },
