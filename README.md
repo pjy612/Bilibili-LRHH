@@ -20,15 +20,14 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
 答案：!!!
 
 
-![ECMAScript 5](https://img.shields.io/badge/ECMAScript_5-unsupport-red.svg?longCache=true) ![ECMAScript 6](https://img.shields.io/badge/ECMAScript_6-pass-green.svg?longCache=true) ![TamperMonkey 4.8](https://img.shields.io/badge/TamperMonkey_4.8-pass-green.svg?longCache=true) ![Chromium 74](https://img.shields.io/badge/Chromium_74-pass-green.svg?longCache=true) ![Firefox 65](https://img.shields.io/badge/Firefox_65-pass-green.svg?longCache=true) [![Issues](https://img.shields.io/github/issues/SeaLoong/Bilibili-LRHH.svg)](https://github.com/SeaLoong/Bilibili-LRHH/issues)
-
+![ECMAScript 5](https://img.shields.io/badge/ECMAScript_5-unsupport-red.svg?longCache=true) ![ECMAScript 6](https://img.shields.io/badge/ECMAScript_6-pass-green.svg?longCache=true) ![TamperMonkey 4.8](https://img.shields.io/badge/TamperMonkey_4.8-pass-green.svg?longCache=true) ![Chromium 74](https://img.shields.io/badge/Chromium_74-pass-green.svg?longCache=true) 
 > 该脚本为TamperMonkey脚本，只在该环境下测试通过，使用其它脚本插件来加载此脚本的，不能保证正常运行  
 > 当脚本无法正常运行时，请把广告拦截插件关闭后重试
 
 -----------------
 ## GitHub中脚本如何安装魔改版
 1.安装油猴插件
-2.点击 [脚本安装-魔改助手](	https://github.com/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js) 即可
+2.点击 [脚本安装-魔改助手](https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js) 即可
 
 ## 如何使用原版
 1. 见[GreasyFork](https://greasyfork.org/zh-CN) 首页说明
