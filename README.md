@@ -1,4 +1,24 @@
-# Bilibili直播间挂机助手/Bilibili-LRHH/BLRHH
+# Bilibili直播间挂机助手/Bilibili-LRHH/BLRHH-魔改-上舰监控大乱斗
+
+<mark>
+ 脚本会上传使用者信息进行身份验证<br>
+ 脚本也可能根据作者兴趣进行DD传送（页面跳转）<br>
+ 脚本能操作用户的播放器和音量（开播刷新页面）<br>
+ 如果介意还请不要使用<br>
+</mark>
+
+<mark>
+PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜子 还会偷偷花你钱给主播送礼物<br>
+不仅如此 脚本可能帮你关注一堆辣眼睛的UP 也可能会把你的硬币全都偷偷花掉<br>
+把你的B币 全部拿去 打赏新番 或者 充电<br>
+还能在大半夜突然发出声音（这条是真的）<br>
+所以 如果你没用过 还请不要使用 感谢 Thanks♪(･ω･)ﾉ <br>
+</mark>
+
+
+如有疑问，请加原作者Q群：704160936（满）,1046583474（新）
+答案：!!!
+
 
 ![ECMAScript 5](https://img.shields.io/badge/ECMAScript_5-unsupport-red.svg?longCache=true) ![ECMAScript 6](https://img.shields.io/badge/ECMAScript_6-pass-green.svg?longCache=true) ![TamperMonkey 4.8](https://img.shields.io/badge/TamperMonkey_4.8-pass-green.svg?longCache=true) ![Chromium 74](https://img.shields.io/badge/Chromium_74-pass-green.svg?longCache=true) ![Firefox 65](https://img.shields.io/badge/Firefox_65-pass-green.svg?longCache=true) [![Issues](https://img.shields.io/github/issues/SeaLoong/Bilibili-LRHH.svg)](https://github.com/SeaLoong/Bilibili-LRHH/issues)
 
@@ -24,11 +44,13 @@
   + 礼物抽奖
   + 舰队领奖
   + 实物抽奖
+  + 大乱斗抽奖(new)
 + 自动完成任务
 + 自动送礼物
 + 自动每日奖励
 + 银瓜子换硬币
-
++ 上舰乱斗监控(new)
++ 当日礼物统计
 -----------------
 
 ## 说明
@@ -79,7 +101,13 @@
 
 -----------------
 
-## 捐赠作者
+## 捐赠魔改作者
+
+暂无
+
+-----------------
+
+## 捐赠原作者
 
 + 支付宝 => ![支付宝二维码](https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/AliPay2.png) 微信 => ![微信二维码](https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/WeChat2.png)
 
@@ -91,6 +119,15 @@
 -----------------
 
 ## 更新日志
+> ###  2020-03-20 (Version 2.4.4.2)
+>     新增当日礼物统计
+>     中间有一系列杂七杂八的东西
+> ###  2019-09-25 (Version 2.4.3.4)
+>     修复频繁重连的问题
+> ###  2019-09-25 (Version 2.4.3.3)
+>     新增大乱斗接口
+>     新增抽奖监控
+>     跨直播间领奖伪造来源
 > ###  2019-08-22 (Version 2.4.3)
 >     更新了抽奖接口
 >     修改了抽奖方式
