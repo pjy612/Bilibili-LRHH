@@ -28,7 +28,9 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
 -----------------
 ## GitHub中脚本如何安装魔改版
 1. 安装油猴插件
-2. 点击 [脚本安装-魔改助手](https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js) 即可
+2. 点击 [脚本安装-魔改助手1](https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js) 或 
+[脚本安装-魔改助手2](https://github.com/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js)即可
+3. 如果github安装不稳定，请自行新建复制 同下方原版步骤
 
 ## 如何使用原版
 1. 见[GreasyFork](https://greasyfork.org/zh-CN) 首页说明
