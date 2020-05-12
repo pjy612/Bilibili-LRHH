@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.16
+// @version      2.4.4.17
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.16';
+    const VERSION = '2.4.4.17';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2189,9 +2189,9 @@
                     }, 10e3);
                     if (CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.REFRESH_INTERVAL > 0) {
                         setTimeout(() => {
-                            if(!BiliPush.connected){
-                                location.reload();
-                            }
+                            // if(!BiliPush.connected){
+                            //     location.reload();
+                            // }
                         }, CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.REFRESH_INTERVAL * 60e3);
                     }
                 } catch (err) {
@@ -2393,9 +2393,9 @@
                         }
                     }
                     for(let roomid of roomSet){
-                        await delayCall(() => BiliPushUtils.Check.run(roomid),200);
+                        await BiliPushUtils.Check.run(roomid);
                     }
-                    await delayCall(() => TopRankTask.run(), 1.5*60e3);
+                    await delayCall(() => TopRankTask.run(), 300e3);
                 } catch (err) {
                     console.error(`[${NAME}]`, err);
                     return delayCall(() => TopRankTask.run());
@@ -2473,7 +2473,7 @@
             ajax: (setting,roomid) => {
                 const p = jQuery.Deferred();
                 runUntilSucceed(() => {
-                    if (BiliPushUtils.processing > 8) return false;
+                    if (BiliPushUtils.processing > 5) return false;
                     ++BiliPushUtils.processing;
                     return BiliPushUtils._ajax(setting).then((arg1, arg2, arg3) => {
                         --BiliPushUtils.processing;
@@ -2704,14 +2704,16 @@
             },
             Check:{
                 roomSet:new Set(),
-                roomRankSet:new Set(),
+                roomCacheSet:new Set(),
                 start:async ()=>{
                     try{
-                        var tmp = Array.from(BiliPushUtils.Check.roomSet);
-                        for(let room_id of tmp){
+                        //var tmp = Array.from(BiliPushUtils.Check.roomSet);
+                        BiliPushUtils.Check.roomCacheSet.clear();
+                        for(let room_id of BiliPushUtils.Check.roomSet){
                             if(BiliPushUtils.Check.roomSet.has(room_id)){
                                 BiliPushUtils.Check.roomSet.delete(room_id);
-                                await delayCall(() => BiliPushUtils.Check.process(room_id),300);
+                                await BiliPushUtils.Check.process(room_id);
+                                await delayCall(() => {},300);
                             }
                         }
                         setTimeout(()=>BiliPushUtils.Check.start(),1000);
@@ -2725,7 +2727,10 @@
                     if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
                     //if (Info.blocked) return $.Deferred().resolve();
                     if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) return $.Deferred().resolve();
-                    BiliPushUtils.Check.roomSet.add(roomid);
+                    if(!BiliPushUtils.Check.roomCacheSet.has(roomid)){
+                        BiliPushUtils.Check.roomCacheSet.add(roomid);
+                        BiliPushUtils.Check.roomSet.add(roomid);
+                    }
                     return $.Deferred().resolve();
                 },
                 process:(roomid) => {
@@ -2935,7 +2940,7 @@
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
                     RafflePorcess.append(roomid, id);
-                    return BiliPushUtils.API.Pk.join(roomid, id).then((response) => {
+                    delayCall(() => BiliPushUtils.API.Pk.join(roomid, id).then((response) => {
                         DEBUG('BiliPushUtils.Pk._join: BiliPushUtils.API.Pk.join', response);
                         if (response.code === 0) {
                             try{
@@ -2958,7 +2963,8 @@
                     }, () => {
                         window.toast(`[自动抽奖][乱斗领奖]领取(roomid=${roomid},id=${id})失败，请检查网络`, 'error');
                         return delayCall(() => BiliPushUtils.Pk._join(roomid, id));
-                    });
+                    }),parseInt(Math.random()*6)*1e3);
+                    return $.Deferred().resolve();
                 }
             },
             Gift: {
@@ -2984,11 +2990,12 @@
                     raffleId = parseInt(raffleId, 10);
                     if (isNaN(roomid) || isNaN(raffleId)) return $.Deferred().reject();
                     if(!type){
-                        return delayCall(() => BiliPushUtils.Check.run(roomid));
+                        delayCall(() => BiliPushUtils.Check.run(roomid));
+                        return $.Deferred().resolve();
                     }
                     window.toast(`[自动抽奖][礼物抽奖]等待抽奖(roomid=${roomid},id=${raffleId},type=${type},time_wait=${time_wait})`, 'success');
                     RafflePorcess.append(roomid, raffleId);
-                    return delayCall(() => BiliPushUtils.API.Gift.join(roomid, raffleId, type).then((response) => {
+                    delayCall(() => BiliPushUtils.API.Gift.join(roomid, raffleId, type).then((response) => {
                         DEBUG('BiliPushUtils.Gift._join: BiliPushUtils.API.Gift.join', response);
                         switch (response.code) {
                             case 0:
@@ -3020,6 +3027,7 @@
                         window.toast(`[自动抽奖][礼物抽奖]参加抽奖(roomid=${roomid},id=${raffleId},type=${type})失败，请检查网络`, 'error');
                         return delayCall(() => BiliPushUtils.Gift._join(roomid, raffleId, type),1e3);
                     }), (time_wait + 1) * 1e3);
+                    return $.Deferred().resolve();
                 }
             },
             Guard: {
@@ -3044,7 +3052,7 @@
                     id = parseInt(id, 10);
                     if (isNaN(roomid) || isNaN(id)) return $.Deferred().reject();
                     RafflePorcess.append(roomid, id);
-                    return BiliPushUtils.API.Guard.join(roomid, id).then((response) => {
+                    delayCall(() =>BiliPushUtils.API.Guard.join(roomid, id).then((response) => {
                         DEBUG('BiliPushUtils.Guard._join: BiliPushUtils.API.Guard.join', response);
                         if (response.code === 0) {
                             Statistics.appendGift(response.data.award_name,response.data.award_num,response.data.award_ex_time);
@@ -3063,7 +3071,8 @@
                     }, () => {
                         window.toast(`[自动抽奖][舰队领奖]领取(roomid=${roomid},id=${id})失败，请检查网络`, 'error');
                         return delayCall(() => BiliPushUtils.Guard._join(roomid, id));
-                    });
+                    }),parseInt(Math.random()*6)*1e3);
+                    return $.Deferred().resolve();
                 }
             }
         }
@@ -3115,7 +3124,7 @@
                         BiliPush.gsocket.send("ping");
                         BiliPush.gheartTimeId = setInterval(function () {
                             BiliPush.gsocket.send("ping");
-                        }, 5000);
+                        }, 120e3);
                     };
                     BiliPush.gsocket.onclose = function (e) {
                         console.error('bilipush 连接断开');
