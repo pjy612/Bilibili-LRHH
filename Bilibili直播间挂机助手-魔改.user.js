@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.18
+// @version      2.4.4.19
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.18';
+    const VERSION = '2.4.4.19';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -568,7 +568,7 @@
                         div_style.append(div_title);
 
                         const div_content = $('<div/>');
-                        div_content[0].style = 'display: inline-block;vertical-align: top;font-size: 14px;';
+                        div_content[0].style = 'display: inline-block;vertical-align: top;font-size: 14px;overflow: auto;height: 300px;';
                         div_style.append(div_content);
 
                         const div_button = $('<div/>');
@@ -629,11 +629,11 @@
                     AUTO_TASK: true,
                     AUTO_GIFT: false,
                     AUTO_GIFT_CONFIG: {
-                        ROOMID: 0,
-                        GIFT_DEFAULT: [1],
-                        GIFT_ALLOWED: [1],
-                        SEND_TODAY: false,
-                        IGNORE_FEED: false
+                        ROOMID: [0],
+                        GIFT_INTERVAL:10,
+                        GIFT_LIMIT:86400,
+                        GIFT_SORT:true,
+                        SEND_ALL: false
                     },
                     SILVER2COIN: false,
                     AUTO_DAILYREWARD: true,
@@ -681,11 +681,11 @@
                     AUTO_TASK: '自动完成任务',
                     AUTO_GIFT: '自动送礼物',
                     AUTO_GIFT_CONFIG: {
-                        ROOMID: '房间号',
-                        GIFT_DEFAULT: '默认礼物类型',
-                        GIFT_ALLOWED: '允许礼物类型',
-                        SEND_TODAY: '送出包裹中今天到期的礼物',
-                        IGNORE_FEED: '忽略今日亲密度上限'
+                        ROOMID: '优先房间号',
+                        GIFT_INTERVAL:'检查间隔(分钟)',
+                        GIFT_SORT:'优先高等级',
+                        GIFT_LIMIT:'到期时间(秒)',
+                        SEND_ALL: '送满全部勋章'
                     },
                     SILVER2COIN: '银瓜子换硬币',
                     AUTO_DAILYREWARD: '自动每日奖励',
@@ -750,10 +750,13 @@
                         HIDE_POPUP: '隐藏位于聊天框下方的抽奖提示框<br>注意：脚本参加抽奖后，部分抽奖仍然可以手动点击参加，为避免小黑屋，不建议点击'
                     },
                     AUTO_GIFT_CONFIG: {
-                        ROOMID: '送礼物的直播间ID(即地址中live.bilibili.com/后面的数字), 设置为0则不送礼，小于0也视为0<br>只有在当前直播间和设置的直播间相同时才会送礼',
+                        ROOMID: '数组,送礼物的直播间ID(即地址中live.bilibili.com/后面的数字), 设置为0则不送礼，小于0也视为0<br>只有在当前直播间和设置的直播间相同时才会送礼',
+                        GIFT_INTERVAL:'检查间隔(分钟)',
+                        GIFT_SORT:'打钩优先赠送高等级勋章，不打勾优先赠送低等级勋章',
+                        GIFT_LIMIT:'到期时间范围（秒），86400为1天，时间小于1天的会被送掉',
                         GIFT_DEFAULT: () => (`设置默认送的礼物类型编号，多个请用英文逗号(,)隔开，为空则表示默认不送出礼物<br>${Info.gift_list_str}`),
                         GIFT_ALLOWED: () => (`设置允许送的礼物类型编号(任何未在此列表的礼物一定不会被送出!)，多个请用英文逗号(,)隔开，为空则表示允许送出所有类型的礼物<br><br>${Info.gift_list_str}`),
-                        SEND_TODAY: '送出包裹中今天到期的礼物(会送出"默认礼物类型"之外的礼物，若今日亲密度已满则不送)'
+                        SEND_ALL: '打钩 送满全部勋章，否则 送出包裹中今天到期的礼物(会送出"默认礼物类型"之外的礼物，若今日亲密度已满则不送)'
                     },
                     SILVER2COIN: '用银瓜子兑换硬币，每天只能兑换一次<br>700银瓜子兑换1个硬币',
                     AUTO_DAILYREWARD: '自动完成每日经验的任务',
@@ -1000,16 +1003,17 @@
                     config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL = parseInt(config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL, 10);
                     if (config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL < 0) config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL = 0;
 
-                    if (config.AUTO_GIFT_CONFIG.ROOMID === undefined) config.AUTO_GIFT_CONFIG.ROOMID = Essential.Config.CONFIG_DEFAULT.AUTO_GIFT_CONFIG.ROOMID;
-                    config.AUTO_GIFT_CONFIG.ROOMID = parseInt(config.AUTO_GIFT_CONFIG.ROOMID, 10);
-                    if (config.AUTO_GIFT_CONFIG.ROOMID < 0) config.AUTO_GIFT_CONFIG.ROOMID = 0;
-
                     if (config.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER === undefined) config.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER = Essential.Config.CONFIG_DEFAULT.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER;
                     config.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER = parseInt(config.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER, 10);
                     if (config.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER < 0) config.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER = 0;
                     if (config.AUTO_LOTTERY_CONFIG.STORM_CONFIG.STORM_QUEUE_SIZE < 0) config.AUTO_LOTTERY_CONFIG.STORM_CONFIG.STORM_QUEUE_SIZE = 1;
                     if (config.AUTO_LOTTERY_CONFIG.STORM_CONFIG.STORM_MAX_COUNT < 0) config.AUTO_LOTTERY_CONFIG.STORM_CONFIG.STORM_MAX_COUNT = 0;
                     if (config.AUTO_LOTTERY_CONFIG.STORM_CONFIG.STORM_ONE_LIMIT < 0) config.AUTO_LOTTERY_CONFIG.STORM_CONFIG.STORM_ONE_LIMIT = 1;
+                    if($.type(CONFIG.AUTO_GIFT_CONFIG.ROOMID)!='array'){
+                        CONFIG.AUTO_GIFT_CONFIG.ROOMID = [0];
+                    }
+                    if (config.AUTO_GIFT_CONFIG.GIFT_INTERVAL < 0) config.AUTO_GIFT_CONFIG.GIFT_INTERVAL = 1;
+                    if (config.AUTO_GIFT_CONFIG.GIFT_LIMIT < 0) config.AUTO_GIFT_CONFIG.GIFT_LIMIT = 86400;
                     return config;
                 },
                 _copy: (obj) => {
@@ -1262,10 +1266,15 @@
                 }
                 return 0;
             },
-            run: () => {
+            run: async () => {
+                const func = () => {
+                    window.toast('[自动送礼]送礼失败，请检查网络', 'error');
+                    return delayCall(() => Gift.run());
+                };
                 try {
-                    if (!CONFIG.AUTO_GIFT || (CONFIG.AUTO_GIFT && CONFIG.AUTO_GIFT_CONFIG.ROOMID > 0 && CONFIG.AUTO_GIFT_CONFIG.ROOMID !== Info.short_id && CONFIG.AUTO_GIFT_CONFIG.ROOMID !== Info.roomid)) return $.Deferred().resolve();
+                    if (!CONFIG.AUTO_GIFT) return $.Deferred().resolve();
                     if (Gift.run_timer) clearTimeout(Gift.run_timer);
+                    Gift.interval = CONFIG.AUTO_GIFT_CONFIG.GIFT_INTERVAL * 60e3;
                     if (CACHE.gift_ts) {
                         const diff = ts_ms() - CACHE.gift_ts;
                         if (diff < Gift.interval) {
@@ -1273,61 +1282,91 @@
                             return $.Deferred().resolve();
                         }
                     }
-                    const func = () => {
-                        window.toast('[自动送礼]送礼失败，请检查网络', 'error');
-                        return delayCall(() => Gift.run());
-                    };
-                    return API.room.room_init(CONFIG.AUTO_GIFT_CONFIG.ROOMID).then((response) => {
-                        DEBUG('Gift.run: API.room.room_init', response);
-                        Gift.room_id = parseInt(response.data.room_id, 10);
-                        return Gift.getMedalList().then(() => {
-                            DEBUG('Gift.run: Gift.getMedalList().then: Gift.medal_list', Gift.medal_list);
-                            $.each(Gift.medal_list, (i, v) => {
-                                if (parseInt(v.roomid, 10) === CONFIG.AUTO_GIFT_CONFIG.ROOMID) {
-                                    Gift.ruid = v.target_id;
-                                    Gift.remain_feed = v.day_limit - v.today_feed;
-                                    Gift.getBagList().then(() => {
-                                        CACHE.gift_ts = ts_ms();
-                                        Essential.Cache.save();
-                                        if (CONFIG.AUTO_GIFT_CONFIG.IGNORE_FEED) {
-                                            window.toast('[自动送礼]忽略今日亲密度上限，送礼开始', 'info');
-                                            Gift.sendGift();
-                                        } else {
-                                            if (Gift.remain_feed > 0) {
-                                                window.toast('[自动送礼]今日亲密度未满，送礼开始', 'info');
-                                                Gift.sendGift();
-                                            } else {
-                                                window.toast('[自动送礼]今日亲密度已满', 'info');
-                                                runTomorrow(Gift.run);
-                                            }
-                                        }
-                                    });
-                                    return false;
+                    await Gift.getMedalList();
+                    DEBUG('Gift.run: Gift.getMedalList().then: Gift.medal_list', Gift.medal_list);
+                    if(Gift.medal_list && Gift.medal_list.length>0){
+                        Gift.medal_list = Gift.medal_list.filter(it=>it.dayLimit-it.today_feed>0 && it.level < 20);
+                        if(CONFIG.AUTO_GIFT_CONFIG.GIFT_SORT){
+                            Gift.medal_list.sort((a,b)=>{
+                                if(b.level-a.level==0){
+                                    return b.intimacy-a.intimacy;
                                 }
+                                return b.level-a.level;
                             });
-                        }, func);
-                    }, func);
+                        }else{
+                            Gift.medal_list.sort((a,b)=>{
+                                if(a.level-b.level==0){
+                                    return a.intimacy-b.intimacy;
+                                }
+                                return a.level-b.level;
+                            });
+                        }
+                        if(CONFIG.AUTO_GIFT_CONFIG.ROOMID && CONFIG.AUTO_GIFT_CONFIG.ROOMID.length>0){
+                            let sortRooms = CONFIG.AUTO_GIFT_CONFIG.ROOMID;
+                            sortRooms.reverse();
+                            for(let froom of sortRooms){
+                                let rindex = Gift.medal_list.findIndex(r=>r.roomid==froom);
+                                if(rindex!=-1){
+                                    let tmp = Gift.medal_list[rindex];
+                                    Gift.medal_list.splice(rindex,1);
+                                    Gift.medal_list.unshift(tmp);
+                                }
+                            }
+                        }
+                        for(let v of Gift.medal_list){
+                            let response = await API.room.room_init(parseInt(v.roomid, 10));
+                            Gift.room_id = parseInt(response.data.room_id, 10);
+                            Gift.ruid = v.target_id;
+                            Gift.remain_feed = v.day_limit - v.today_feed;
+                            if(Gift.remain_feed > 0){
+                                await Gift.getBagList();
+                                let now = ts_s();
+                                if(!CONFIG.AUTO_GIFT_CONFIG.SEND_ALL){
+                                    let limit = CONFIG.AUTO_GIFT_CONFIG.GIFT_LIMIT;
+                                    let pass = Gift.bag_list.filter(r=>![4, 3, 9, 10].includes(r.gift_id) && r.expire_at > now && (r.expire_at - now < limit));
+                                    if(pass.length==0){
+                                        break;
+                                    }
+                                }
+                                CACHE.gift_ts = ts_ms();
+                                Essential.Cache.save();
+                                if (Gift.remain_feed > 0) {
+                                    window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度未满，送礼开始`, 'info');
+                                    await Gift.sendGift(v);
+                                } else {
+                                    window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度已满`, 'info');
+                                }
+                            }
+                        }
+                    }
+                    setTimeout(Gift.run, Gift.interval);
                 } catch (err) {
+                    func();
                     window.toast('[自动送礼]运行时出现异常，已停止', 'error');
                     console.error(`[${NAME}]`, err);
                     return $.Deferred().reject();
                 }
             },
-            sendGift: (i = 0) => {
+            sendGift: (medal,i = 0) => {
                 if (i >= Gift.bag_list.length) {
                     Gift.run_timer = setTimeout(Gift.run, Gift.interval);
                     return $.Deferred().resolve();
                 }
-                if (Gift.remain_feed <= 0 && !CONFIG.AUTO_GIFT_CONFIG.IGNORE_FEED) {
-                    window.toast('[自动送礼]送礼结束，今日亲密度已满', 'info');
-                    runTomorrow(Gift.run);
+                if (Gift.remain_feed <= 0) {
+                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼结束，今日亲密度已满`, 'info');
                     return $.Deferred().resolve();
                 }
-                if (Gift.time <= 0) Gift.time = ts_ms();
+                if (Gift.time <= 0) Gift.time = ts_s();
                 const v = Gift.bag_list[i];
-                if (($.inArray(v.gift_id, CONFIG.AUTO_GIFT_CONFIG.GIFT_ALLOWED) > -1 || !CONFIG.AUTO_GIFT_CONFIG.GIFT_ALLOWED.length) && // 检查GIFT_ALLOWED
-                    ($.inArray(v.gift_id, CONFIG.AUTO_GIFT_CONFIG.GIFT_DEFAULT) > -1 || // 检查GIFT_DEFAULT
-                     (CONFIG.AUTO_GIFT_CONFIG.SEND_TODAY && v.expire_at > Gift.time && v.expire_at - Gift.time < 86400))) { // 检查SEND_TODAY和礼物到期时间
+                if (
+                    //特殊礼物排除
+                    (![4, 3, 9, 10].includes(v.gift_id)
+                     //满足到期时间
+                     && v.expire_at > Gift.time && (v.expire_at - Gift.time < CONFIG.AUTO_GIFT_CONFIG.GIFT_LIMIT)
+                    )
+                    //或者全部送满
+                    || CONFIG.AUTO_GIFT_CONFIG.SEND_ALL){
+                    // 检查SEND_ALL和礼物到期时间 送当天到期的
                     const feed = Gift.getFeedByGiftID(v.gift_id);
                     if (feed > 0) {
                         let feed_num = Math.floor(Gift.remain_feed / feed);
@@ -1337,19 +1376,19 @@
                                 DEBUG('Gift.sendGift: API.gift.bag_send', response);
                                 if (response.code === 0) {
                                     Gift.remain_feed -= feed_num * feed;
-                                    window.toast(`[自动送礼]包裹送礼成功，送出${feed_num}个${v.gift_name}`, 'success');
+                                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼成功，送出${feed_num}个${v.gift_name}`, 'success');
                                 } else {
-                                    window.toast(`[自动送礼]${response.msg}`, 'caution');
+                                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼异常:${response.msg}`, 'caution');
                                 }
-                                return Gift.sendGift(i + 1);
+                                return Gift.sendGift(medal,i + 1);
                             }, () => {
                                 window.toast('[自动送礼]包裹送礼失败，请检查网络', 'error');
-                                return delayCall(() => Gift.sendGift(i));
+                                return delayCall(() => Gift.sendGift(medal,i));
                             });
                         }
                     }
                 }
-                return Gift.sendGift(i + 1);
+                return Gift.sendGift(medal,i + 1);
             }
         }; // Once Run every 10 minutes
 
