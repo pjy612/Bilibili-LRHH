@@ -127,7 +127,7 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
 -----------------
 
 ## 许可证
-[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?longCache=true)](https://github.com/SeaLoong/Bilibili-LRHH/blob/master/LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?longCache=true)](https://github.com/pjy612/Bilibili-LRHH/blob/master/LICENSE)
 
 -----------------
 
