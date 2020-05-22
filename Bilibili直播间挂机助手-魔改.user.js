@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.19
+// @version      2.4.4.20
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @downloadURL  https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @homepageURL  https://github.com/pjy612/Bilibili-LRHH
 // @supportURL   https://github.com/pjy612/Bilibili-LRHH/issues
-// @include      /https?:\/\/live\.bilibili\.com\/[^?]*?\d+\??.*/
+// @include      /https?:\/\/live\.bilibili\.com\/[blanc\/]?[^?]*?\d+\??.*/
 // @include      /https?:\/\/api\.live\.bilibili\.com\/_.*/
 // @require      https://code.jquery.com/jquery-3.3.1.min.js
 // @require      https://greasyfork.org/scripts/390500-bilibiliapi-plus/code/BilibiliAPI_Plus.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.19';
+    const VERSION = '2.4.4.20';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -47,13 +47,7 @@
         document.domain = 'bilibili.com';
     }
     let API;
-    try {
-        API = BilibiliAPI;
-    } catch (err) {
-        window.toast('BilibiliAPI初始化失败，脚本已停用！', 'error');
-        console.error(`[${NAME}]`, err);
-        return;
-    }
+
     //const window = unsafeWindow;
     const isSubScript = () => window.frameElement && window.parent[NAME] && window.frameElement[NAME];
 
@@ -823,7 +817,8 @@
                         };
                         runUntilSucceed(() => {
                             try {
-                                if (!$('#sidebar-vm div.side-bar-cntr')[0]) return false;
+                                //if (!$('#sidebar-vm div.side-bar-cntr')[0]) return false;
+                                if (!$('#sidebar-vm')[0]) return false;
                                 // 加载css
                                 addCSS(`.${NAME}_clickable {font-size: 12px;color: #0080c6;cursor: pointer;text-decoration: underline;}
 .${NAME}_setting_item {margin: 6px 0px;}
@@ -838,7 +833,8 @@
                                 div_side_bar[0].style = 'width: 56px;height: 32px;overflow: hidden;position: fixed;right: 0px;bottom: 10%;padding: 4px 4px;background-color: rgb(255, 255, 255);z-index: 10001;border-radius: 8px 0px 0px 8px;box-shadow: rgba(0, 85, 255, 0.0980392) 0px 0px 20px 0px;border: 1px solid rgb(233, 234, 236);';
                                 div_button.append(div_button_span);
                                 div_side_bar.append(div_button);
-                                $('#sidebar-vm div.side-bar-cntr').first().after(div_side_bar);
+                                //$('#sidebar-vm div.side-bar-cntr').first().after(div_side_bar);
+                                $('#sidebar-vm').first().append(div_side_bar);
                                 // 绘制设置界面
                                 const div_position = $('<div/>');
                                 div_position[0].style = 'display: none;position: fixed;height: 300px;width: 350px;bottom: 5%;z-index: 9999;';
@@ -2281,6 +2277,28 @@
             try {
                 const promiseInit = $.Deferred();
                 Essential.init().then(() => {
+                    console.log("魔改脚本加载成功...")
+                    try {
+                        API = BilibiliAPI;
+                    } catch (err) {
+                        window.toast('BilibiliAPI初始化失败，脚本已停用！', 'error');
+                        console.error(`[${NAME}]`, err);
+                        return p1.reject();
+                    }
+                    let blancFrames = $('iframe');
+                    let pass = true;
+                    if(blancFrames && blancFrames.length>0){
+                        blancFrames.each((k,v)=>{
+                            if(v.src.includes('/blanc/')){
+                                pass = false;
+                                window.toast('检查到特殊活动页，尝试跳转...', 'info',10e3);
+                                setTimeout(()=>{
+                                    location.href = v.src;
+                                },10);
+                                return true;
+                            }
+                        });
+                    }
                     const uniqueCheck = () => {
                         const p1 = $.Deferred();
                         const t = Date.now() / 1000;
