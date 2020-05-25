@@ -698,6 +698,7 @@
                 },
                 PLACEHOLDER: {
                     AUTO_LOTTERY_CONFIG: {
+                        SLEEP_RANGE:'时间范围03:00-08:00',
                         GIFT_LOTTERY_CONFIG: {
                             REFRESH_INTERVAL: '单位(分钟)'
                         },
