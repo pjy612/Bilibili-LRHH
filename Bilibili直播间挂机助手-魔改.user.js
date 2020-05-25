@@ -2917,6 +2917,11 @@
                         //if (Info.blocked) return $.Deferred().resolve();
                         if(BiliPushUtils.stormBlack) return $.Deferred().resolve();
                         if(!CONFIG.AUTO_LOTTERY_CONFIG.STORM) return $.Deferred().resolve();
+                        let sleep = BiliPushUtils.Check.checkSleep();
+                        if(sleep){
+                            console.log(`自动休眠 ${sleep.str} 跳过风暴检测,roomid=${roomid}`);
+                            return $.Deferred().resolve();
+                        }
                         return BiliPushUtils.API.Storm.check(roomid).then((response) => {
                             DEBUG('BiliPushUtils.Storm.run: BiliPushUtils.API.Storm.check', response);
                             if (response.code === 0) {
