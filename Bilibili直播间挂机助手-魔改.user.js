@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.21
+// @version      2.4.4.22
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.21';
+    const VERSION = '2.4.4.22';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -597,6 +597,7 @@
                     MOBILE_HEARTBEAT: true,
                     AUTO_LOTTERY: true,
                     AUTO_LOTTERY_CONFIG: {
+                        SLEEP_RANGE:"",
                         GIFT_LOTTERY: true,
                         GIFT_LOTTERY_CONFIG: {
                             REFRESH_INTERVAL: 0
@@ -649,6 +650,7 @@
                     MOBILE_HEARTBEAT: '移动端心跳',
                     AUTO_LOTTERY: '自动抽奖',
                     AUTO_LOTTERY_CONFIG: {
+                        SLEEP_RANGE:'休眠时间',
                         GIFT_LOTTERY: '礼物抽奖',
                         GIFT_LOTTERY_CONFIG: {
                             REFRESH_INTERVAL: '刷新间隔'
@@ -722,6 +724,7 @@
                     MOBILE_HEARTBEAT: '发送移动端心跳数据包，可以完成双端观看任务',
                     AUTO_LOTTERY: '设置是否自动参加抽奖功能，包括礼物抽奖、活动抽奖、实物抽奖<br>会占用更多资源并可能导致卡顿，且有封号风险',
                     AUTO_LOTTERY_CONFIG: {
+                        SLEEP_RANGE:'休眠时间范围，英文逗号分隔<br>例如：<br>3:00-8:00,16:50-17:30<br>表示 3:00-8:00和16:50-17:30不进行礼物检测。<br>小时为当天只能为0-23,如果要转钟请单独配置aa:aa-23:59,00:00-bb:bb',
                         GIFT_LOTTERY: '包括小电视、摩天大楼、C位光环及其他可以通过送礼触发广播的抽奖<br>内置几秒钟的延迟',
                         GIFT_LOTTERY_CONFIG: {
                             REFRESH_INTERVAL: '设置页面自动刷新的时间间隔，设置为0则不启用，单位为分钟<br>太久导致页面崩溃将无法正常运行脚本'
@@ -744,7 +747,7 @@
                         HIDE_POPUP: '隐藏位于聊天框下方的抽奖提示框<br>注意：脚本参加抽奖后，部分抽奖仍然可以手动点击参加，为避免小黑屋，不建议点击'
                     },
                     AUTO_GIFT_CONFIG: {
-                        ROOMID: '数组,送礼物的直播间ID(即地址中live.bilibili.com/后面的数字), 设置为0则不送礼，小于0也视为0<br>只有在当前直播间和设置的直播间相同时才会送礼',
+                        ROOMID: '数组,送礼物的直播间ID(即地址中live.bilibili.com/后面的数字), 设置为0则不送礼，小于0也视为0（因为你没有0的勋章）<br>例如：17171,21438956<br>不管[优先高等级]如何设置，会根据[送满全部勋章]（补满或者只消耗当日到期）条件去优先送17171的，再送21438956<br>之后根据[优先高等级]决定送高级还是低级',
                         GIFT_INTERVAL:'检查间隔(分钟)',
                         GIFT_SORT:'打钩优先赠送高等级勋章，不打勾优先赠送低等级勋章',
                         GIFT_LIMIT:'到期时间范围（秒），86400为1天，时间小于1天的会被送掉',
@@ -964,13 +967,17 @@
                                 cfg[item] = e.is(':checked');
                                 break;
                             case 'array':
-                                const value = e.val().replace(/(\s|\u00A0)+/, '');
-                                if (value === '') cfg[item] = [];
-                                else cfg[item] = value.split(',');
-                                cfg[item].forEach((v, i) => {
-                                    cfg[item][i] = parseFloat(v);
-                                    if (isNaN(cfg[item][i])) cfg[item][i] = 0;
-                                });
+                                var value = e.val().replace(/(\s|\u00A0)+/, '');
+                                if (value === '') {
+                                    cfg[item] = [];
+                                }
+                                else{
+                                    cfg[item] = value.split(',');
+                                    cfg[item].forEach((v, i) => {
+                                        cfg[item][i] = parseFloat(v);
+                                        if (isNaN(cfg[item][i])) cfg[item][i] = 0;
+                                    });
+                                }
                                 break;
                             case 'object':
                                 cfg[item] = Essential.Config.recurSave(cfg[item], itemname, cfg_default[item]);
@@ -1010,6 +1017,7 @@
                     }
                     if (config.AUTO_GIFT_CONFIG.GIFT_INTERVAL < 0) config.AUTO_GIFT_CONFIG.GIFT_INTERVAL = 1;
                     if (config.AUTO_GIFT_CONFIG.GIFT_LIMIT < 0) config.AUTO_GIFT_CONFIG.GIFT_LIMIT = 86400;
+                    if (config.AUTO_LOTTERY_CONFIG.SLEEP_RANGE === undefined) config.AUTO_LOTTERY_CONFIG.SLEEP_RANGE="";
                     return config;
                 },
                 _copy: (obj) => {
@@ -1026,6 +1034,7 @@
                     Essential.Config.recurLoad(CONFIG);
                     DEBUG('Essential.Config.load: CONFIG', CONFIG);
                     localStorage.setItem(`${NAME}_CONFIG`, JSON.stringify(CONFIG));
+                    BiliPushUtils.Check.sleepTimeRangeBuild();
                 },
                 save: () => {
                     CONFIG = Essential.Config.recurSave(CONFIG);
@@ -1034,6 +1043,7 @@
                     DEBUG('Essential.Config.save: CONFIG', CONFIG);
                     localStorage.setItem(`${NAME}_CONFIG`, JSON.stringify(CONFIG));
                     window.toast('设置已保存，部分设置需要刷新后生效', 'success');
+                    BiliPushUtils.Check.sleepTimeRangeBuild();
                 },
                 clear: () => {
                     CONFIG = Essential.Config._copy(Essential.Config.CONFIG_DEFAULT);
@@ -2762,15 +2772,52 @@
             Check:{
                 roomSet:new Set(),
                 roomCacheSet:new Set(),
+                sleepTimeRange:[],
+                sleepTimeRangeBuild:()=>{
+                    const value = CONFIG.AUTO_LOTTERY_CONFIG.SLEEP_RANGE;
+                    let time_range = [];
+                    let options=value.split(',');
+                    for(let timerangstr of options){
+                        let time_tmp = [];
+                        let baseTimes = timerangstr.split('-');
+                        if(baseTimes && baseTimes.length==2){
+                            let timeArray1 = baseTimes[0].split(':');
+                            let timeArray2 = baseTimes[1].split(':');
+                            time_range.push({
+                                bh:parseInt(timeArray1[0]),
+                                bm:parseInt(timeArray1[1]),
+                                eh:parseInt(timeArray2[0]),
+                                em:parseInt(timeArray2[1]),
+                                str:timerangstr
+                            });
+                        }
+                    }
+                    BiliPushUtils.Check.sleepTimeRange = time_range;
+                    return time_range;
+                },
+                checkSleep:()=>{
+                    let srange = BiliPushUtils.Check.sleepTimeRange;
+                    const now = new Date();
+                    const nh = now.getHours();
+                    const nm = now.getMinutes();
+                    let f = srange.find(it=>it.bh<=nh && it.eh>=nh && it.bm<=nm && it.em>=nm);
+                    return f;
+                },
                 start:async ()=>{
                     try{
                         //var tmp = Array.from(BiliPushUtils.Check.roomSet);
-                        BiliPushUtils.Check.roomCacheSet.clear();
-                        for(let room_id of BiliPushUtils.Check.roomSet){
-                            if(BiliPushUtils.Check.roomSet.has(room_id)){
-                                BiliPushUtils.Check.roomSet.delete(room_id);
-                                await BiliPushUtils.Check.process(room_id);
-                                await delayCall(() => {},300);
+                        //检查是否休眠
+                        if(!BiliPushUtils.Check.checkSleep()){
+                            BiliPushUtils.Check.roomCacheSet.clear();
+                            for(let room_id of BiliPushUtils.Check.roomSet){
+                                if(BiliPushUtils.Check.checkSleep()){
+                                    break;
+                                }
+                                if(BiliPushUtils.Check.roomSet.has(room_id)){
+                                    BiliPushUtils.Check.roomSet.delete(room_id);
+                                    await BiliPushUtils.Check.process(room_id);
+                                    await delayCall(() => {},300);
+                                }
                             }
                         }
                         setTimeout(()=>BiliPushUtils.Check.start(),1000);
@@ -2784,6 +2831,11 @@
                     if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
                     //if (Info.blocked) return $.Deferred().resolve();
                     if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) return $.Deferred().resolve();
+                    let sleep = BiliPushUtils.Check.checkSleep();
+                    if(sleep){
+                        console.log(`自动休眠 ${sleep.str} 跳过抽奖检测,roomid=${roomid}`);
+                        return $.Deferred().resolve();
+                    }
                     if(!BiliPushUtils.Check.roomCacheSet.has(roomid)){
                         BiliPushUtils.Check.roomCacheSet.add(roomid);
                         BiliPushUtils.Check.roomSet.add(roomid);
@@ -2795,6 +2847,11 @@
                         if (!CONFIG.AUTO_LOTTERY) return $.Deferred().resolve();
                         //if (Info.blocked) return $.Deferred().resolve();
                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY && !CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) return $.Deferred().resolve();
+                        let sleep = BiliPushUtils.Check.checkSleep();
+                        if(sleep){
+                            console.log(`自动休眠 ${sleep.str} 跳过抽奖检测,roomid=${roomid}`);
+                            return $.Deferred().resolve();
+                        }
                         BiliPushUtils.Check.roomSet.delete(roomid);
                         return BiliPushUtils.BaseRoomAction(roomid).then((fishing) => {
                             if (!fishing) {
