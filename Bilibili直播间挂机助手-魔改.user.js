@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.23
+// @version      2.4.4.24
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.23';
+    const VERSION = '2.4.4.24';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -1345,7 +1345,7 @@
                                 CACHE.gift_ts = ts_ms();
                                 Essential.Cache.save();
                                 if (Gift.remain_feed > 0) {
-                                    window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度未满，送礼开始`, 'info');
+                                    window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度未满[${v.today_feed}/${v.day_limit}]，预计需要${Gift.remain_feed}送礼开始`, 'info');
                                     await Gift.sendGift(v);
                                 } else {
                                     window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度已满`, 'info');
@@ -1367,7 +1367,7 @@
                     return $.Deferred().resolve();
                 }
                 if (Gift.remain_feed <= 0) {
-                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼结束，今日亲密度已满`, 'info');
+                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼结束，今日亲密度已满[${medal.today_feed}/${medal.day_limit}]`, 'info');
                     return $.Deferred().resolve();
                 }
                 if (Gift.time <= 0) Gift.time = ts_s();
@@ -1389,8 +1389,9 @@
                             return API.gift.bag_send(Info.uid, v.gift_id, Gift.ruid, feed_num, v.bag_id, Gift.room_id, Info.rnd).then((response) => {
                                 DEBUG('Gift.sendGift: API.gift.bag_send', response);
                                 if (response.code === 0) {
+                                    medal.today_feed += feed_num * feed;
                                     Gift.remain_feed -= feed_num * feed;
-                                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼成功，送出${feed_num}个${v.gift_name}`, 'success');
+                                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼成功，送出${feed_num}个${v.gift_name}，[${medal.today_feed}/${medal.day_limit}]距离升级还需 ${Gift.remain_feed}`, 'success');
                                 } else {
                                     window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼异常:${response.msg}`, 'caution');
                                 }
