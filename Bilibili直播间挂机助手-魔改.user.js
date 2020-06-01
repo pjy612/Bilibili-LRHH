@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.26
+// @version      2.4.4.27
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.26';
+    const VERSION = '2.4.4.27';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -1331,6 +1331,7 @@
                                 }
                             }
                         }
+                        let limit = CONFIG.AUTO_GIFT_CONFIG.GIFT_LIMIT;
                         for(let v of Gift.medal_list){
                             let response = await API.room.room_init(parseInt(v.roomid, 10));
                             Gift.room_id = parseInt(response.data.room_id, 10);
@@ -1340,8 +1341,8 @@
                                 await Gift.getBagList();
                                 let now = ts_s();
                                 if(!CONFIG.AUTO_GIFT_CONFIG.SEND_ALL){
-                                    let limit = CONFIG.AUTO_GIFT_CONFIG.GIFT_LIMIT;
-                                    let pass = Gift.bag_list.filter(r=>![4, 3, 9, 10].includes(r.gift_id) && r.expire_at > now && (r.expire_at - now < limit));
+                                    //送之前查一次有没有可送的
+                                    let pass = Gift.bag_list.filter(r=>![4, 3, 9, 10].includes(r.gift_id) && r.gift_num > 0 && r.expire_at > now && (r.expire_at - now < limit));
                                     if(pass.length==0){
                                         break;
                                     }
@@ -1351,6 +1352,12 @@
                                 if (Gift.remain_feed > 0) {
                                     window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度未满[${v.today_feed}/${v.day_limit}]，预计需要${Gift.remain_feed}送礼开始`, 'info');
                                     await Gift.sendGift(v);
+                                    if(!CONFIG.AUTO_GIFT_CONFIG.SEND_ALL){
+                                        let pass = Gift.bag_list.filter(r=>![4, 3, 9, 10].includes(r.gift_id) && r.gift_num > 0 && r.expire_at > now && (r.expire_at - now < limit));
+                                        if(pass.length==0){
+                                            break;
+                                        }
+                                    }
                                 } else {
                                     window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度已满`, 'info');
                                 }
@@ -1392,6 +1399,7 @@
                             return API.gift.bag_send(Info.uid, v.gift_id, Gift.ruid, feed_num, v.bag_id, Gift.room_id, Info.rnd).then((response) => {
                                 DEBUG('Gift.sendGift: API.gift.bag_send', response);
                                 if (response.code === 0) {
+                                    v.gift_num -= feed_num;
                                     medal.today_feed += feed_num * feed;
                                     Gift.remain_feed -= feed_num * feed;
                                     window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼成功，送出${feed_num}个${v.gift_name}，[${medal.today_feed}/${medal.day_limit}]距离升级还需 ${Gift.remain_feed}`, 'success');
@@ -3437,6 +3445,7 @@
                     var expireDay = Math.ceil((expire * 1e3 - new Date().getTime())/86400e3);
                     name = `${name}(${expireDay}d)`;
                 }
+                console.log(`记录：获得 ${name}x${count}`);
                 Statistics.queue.push({name:name,count:count});
             },
             process:()=>{
@@ -3452,9 +3461,26 @@
                 Statistics.process_timeOut = setTimeout(()=>Statistics.process(),200);
             },
             showDayGifts:()=>{
+                let sumGroupKey = ['辣条'];
+                let sumGroup = {};
                 let gifts = [];
-                for(let k in Statistics.gifts){
-                    gifts.push(`${k}x${Statistics.gifts[k]}`);
+                for(let [k,v] of Object.entries(Statistics.gifts)){
+                    gifts.push(`${k}x${v}`);
+                    for(let t of sumGroupKey){
+                        if(k.startsWith(t)){
+                            if(sumGroup[t]){
+                                sumGroup[t] += v;
+                            }else{
+                                sumGroup[t] = v;
+                            }
+                        }
+                    }
+                }
+                if(gifts.length>0){
+                    gifts.push(`统计:`);
+                    for(let [k,v] of Object.entries(sumGroup)){
+                        gifts.push(`${k}x${v}`);
+                    }
                 }
                 window.alertdialog('当日礼物统计', gifts.join('<br>'));
             },
