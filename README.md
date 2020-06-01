@@ -124,7 +124,7 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
 
 -----------------
 
-## 捐赠原作者
+## 捐赠原作者（原作者近期正在憋大招，应该会有新的框架和优化）
 
 + 支付宝 => ![支付宝二维码](https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/AliPay2.png) 微信 => ![微信二维码](https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/WeChat2.png)
 
