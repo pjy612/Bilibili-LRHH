@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.27
+// @version      2.4.4.28
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.27';
+    const VERSION = '2.4.4.28';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -185,7 +185,7 @@
                         if (i >= list.length) return $.Deferred().resolve();
                         const obj = list[i];
                         //自己不能给自己的应援团应援
-                        if(obj.owner_uid==Info.uid) return $.Deferred().resolve();
+                        if(obj.owner_uid==Info.uid) return GroupSign.signInList(list, i + 1);
                         return API.Group.sign_in(obj.group_id, obj.owner_uid).then((response) => {
                             DEBUG('GroupSign.signInList: API.Group.sign_in', response);
                             const p = $.Deferred();
