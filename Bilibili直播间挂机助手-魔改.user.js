@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.28
+// @version      2.4.4.29
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -13,8 +13,9 @@
 // @require      https://code.jquery.com/jquery-3.3.1.min.js
 // @require      https://greasyfork.org/scripts/390500-bilibiliapi-plus/code/BilibiliAPI_Plus.js
 // @require      https://js-1258131272.file.myqcloud.com/OCRAD.min.js
-// @run-at       document-start
+// @run-at       document-idle
 // @license      MIT License
+// @noframes
 // @grant        none
 // ==/UserScript==
 /*
@@ -33,7 +34,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.28';
+    const VERSION = '2.4.4.29';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -46,8 +47,8 @@
     }catch(e){
         document.domain = 'bilibili.com';
     }
+    let scriptRuning = false;
     let API;
-
     //const window = unsafeWindow;
     const isSubScript = () => window.frameElement && window.parent[NAME] && window.frameElement[NAME];
 
@@ -506,7 +507,7 @@
             Toast: {
                 init: () => {
                     try {
-                        const list = [];
+                        const toastList = [];
                         window.toast = (msg, type = 'info', timeout = 3e3) => {
                             let d = new Date().toLocaleTimeString();
                             switch (type) {
@@ -527,14 +528,14 @@
                             if (CONFIG && !CONFIG.SHOW_TOAST) return;
                             const a = $(`<div class="link-toast ${type} fixed"><span class="toast-text">${msg}</span></div>`)[0];
                             document.body.appendChild(a);
-                            a.style.top = (document.body.scrollTop + list.length * 40 + 10) + 'px';
+                            a.style.top = (document.body.scrollTop + toastList.length * 40 + 10) + 'px';
                             a.style.left = (document.body.offsetWidth + document.body.scrollLeft - a.offsetWidth - 5) + 'px';
-                            list.push(a);
+                            toastList.push(a);
                             setTimeout(() => {
                                 a.className += ' out';
                                 setTimeout(() => {
-                                    list.shift();
-                                    list.forEach((v) => {
+                                    toastList.shift();
+                                    toastList.forEach((v) => {
                                         v.style.top = (parseInt(v.style.top, 10) - 40) + 'px';
                                     });
                                     $(a).remove();
@@ -828,6 +829,24 @@
                         };
                         runUntilSucceed(() => {
                             try {
+                                let findSp = false;
+                                let blancFrames = $('iframe');
+                                if(blancFrames && blancFrames.length>0){
+                                    blancFrames.each((k,v)=>{
+                                        if(v.src.includes('/blanc/')){
+                                            findSp = true;
+                                            window.toast('检查到特殊活动页，尝试跳转...', 'info',5e3);
+                                            setTimeout(()=>{
+                                                location.replace(v.src);
+                                            },10);
+                                            return false;
+                                        }
+                                    });
+                                }
+                                if(findSp) {
+                                    p.reject();
+                                    return true;
+                                }
                                 //if (!$('#sidebar-vm div.side-bar-cntr')[0]) return false;
                                 if (!$('#sidebar-vm')[0]) return false;
                                 // 加载css
@@ -1350,7 +1369,7 @@
                                 CACHE.gift_ts = ts_ms();
                                 Essential.Cache.save();
                                 if (Gift.remain_feed > 0) {
-                                    window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度未满[${v.today_feed}/${v.day_limit}]，预计需要${Gift.remain_feed}送礼开始`, 'info');
+                                    window.toast(`[自动送礼]勋章[${v.medalName}] 今日亲密度未满[${v.today_feed}/${v.day_limit}]，预计需要[${Gift.remain_feed}]送礼开始`, 'info');
                                     await Gift.sendGift(v);
                                     if(!CONFIG.AUTO_GIFT_CONFIG.SEND_ALL){
                                         let pass = Gift.bag_list.filter(r=>![4, 3, 9, 10].includes(r.gift_id) && r.gift_num > 0 && r.expire_at > now && (r.expire_at - now < limit));
@@ -1402,7 +1421,7 @@
                                     v.gift_num -= feed_num;
                                     medal.today_feed += feed_num * feed;
                                     Gift.remain_feed -= feed_num * feed;
-                                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼成功，送出${feed_num}个${v.gift_name}，[${medal.today_feed}/${medal.day_limit}]距离升级还需 ${Gift.remain_feed}`, 'success');
+                                    window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼成功，送出${feed_num}个${v.gift_name}，[${medal.today_feed}/${medal.day_limit}]距离升级还需[${Gift.remain_feed}]`, 'success');
                                 } else {
                                     window.toast(`[自动送礼]勋章[${medal.medalName}] 送礼异常:${response.msg}`, 'caution');
                                 }
@@ -1918,7 +1937,7 @@
                         return $.Deferred().reject();
                     }
                 },
-                check: (aid, valid = 439, rem = 9) => { // TODO
+                check: (aid, valid = 564, rem = 9) => { // TODO
                     aid = parseInt(aid || (CACHE.last_aid), 10);
                     if (isNaN(aid)) aid = valid;
                     DEBUG('Lottery.MaterialObject.check: aid=', aid);
@@ -2306,28 +2325,16 @@
         const Init = () => {
             try {
                 const promiseInit = $.Deferred();
+                scriptRuning = true;
+                console.log("魔改脚本成功运行...")
                 Essential.init().then(() => {
-                    console.log("魔改脚本加载成功...")
+                    console.log("脚本配置加载完毕...")
                     try {
                         API = BilibiliAPI;
                     } catch (err) {
                         window.toast('BilibiliAPI初始化失败，脚本已停用！', 'error');
                         console.error(`[${NAME}]`, err);
                         return p1.reject();
-                    }
-                    let blancFrames = $('iframe');
-                    let pass = true;
-                    if(blancFrames && blancFrames.length>0){
-                        blancFrames.each((k,v)=>{
-                            if(v.src.includes('/blanc/')){
-                                pass = false;
-                                window.toast('检查到特殊活动页，尝试跳转...', 'info',10e3);
-                                setTimeout(()=>{
-                                    location.href = v.src;
-                                },10);
-                                return true;
-                            }
-                        });
                     }
                     const uniqueCheck = () => {
                         const p1 = $.Deferred();
@@ -3500,7 +3507,7 @@
             if (CONFIG.AUTO_LOTTERY) Lottery.run();
             RafflePorcess.run();
             TopRankTask.run();
-            BiliPush.run();
+            //BiliPush.run();
         };
         $.MsgBox = {
             Alert: function(title, msg) {
