@@ -914,7 +914,6 @@
                                         div_button_span.css('color', '#0080c6');
                                         BiliPushUtils.Check.sleepTimeRangeBuild();
                                         if(CONFIG.DD_BP){
-                                            debugger
                                             BiliPush.connectWebsocket(true);
                                         }else if(BiliPush.gsocket) {
                                             BiliPush.gsocket.close();
@@ -3321,11 +3320,11 @@
                         BiliPush.gsocket = null;
                         clearTimeout(BiliPush.gsocketTimeId);
                         clearInterval(BiliPush.gheartTimeId);
-                        if(CONFIG.DD_BP){
-                            BiliPush.gsocketTimeId = setTimeout(function () {
+                        BiliPush.gsocketTimeId = setTimeout(function () {
+                            if(CONFIG.DD_BP){
                                 BiliPush.connectWebsocket();
-                            }, 5000);
-                        }
+                            }
+                        }, 5000);
                     };
                     BiliPush.gsocket.onmessage = function (e) {
                         try {
@@ -3342,21 +3341,21 @@
                         BiliPush.gsocket = null;
                         clearTimeout(BiliPush.gsocketTimeId);
                         clearInterval(BiliPush.gheartTimeId);
-                        if(CONFIG.DD_BP){
-                            BiliPush.gsocketTimeId = setTimeout(function () {
+                        BiliPush.gsocketTimeId = setTimeout(function () {
+                            if(CONFIG.DD_BP){
                                 BiliPush.connectWebsocket();
-                            }, 5000);
-                        }
+                            }
+                        }, 5000);
                     };
                     BiliPush.lock = false;
                 }, function (err) {
                     console.error("bilipush连接失败，等待重试...");
                     BiliPush.connected = false;
-                    if(CONFIG.DD_BP){
-                        BiliPush.gsocketTimeId = setTimeout(function () {
+                    BiliPush.gsocketTimeId = setTimeout(function () {
+                        if(CONFIG.DD_BP){
                             BiliPush.connectWebsocket();
-                        }, 5000);
-                    }
+                        }
+                    }, 5000);
                     BiliPush.lock = false;
                 });
             },
