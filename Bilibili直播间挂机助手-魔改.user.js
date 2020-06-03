@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.30
+// @version      2.4.4.31
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -15,7 +15,6 @@
 // @require      https://js-1258131272.file.myqcloud.com/OCRAD.min.js
 // @run-at       document-idle
 // @license      MIT License
-// @noframes
 // @grant        none
 // ==/UserScript==
 /*
@@ -34,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.30';
+    const VERSION = '2.4.4.31';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2381,6 +2380,7 @@
                                 initFailed = true;
                             });
                             let timer_p2 = setTimeout(() => p2.resolve(), 30e3);
+                            let tryCount = 0;
                             runUntilSucceed(() => {
                                 try {
                                     if (initFailed) {
@@ -2394,11 +2394,15 @@
                                     DEBUG('Init: InitData: __statisObserver', window.__statisObserver);
                                     clearTimeout(timer_p2);
                                     timer_p2 = undefined;
-                                    //if (parseInt(window.BilibiliLive.UID, 10) === 0 || isNaN(parseInt(window.BilibiliLive.UID, 10))) {
-                                    //    window.toast('你还没有登录，助手无法使用！', 'caution');
-                                    //    p.reject();
-                                    //    return true;
-                                    //}
+                                    if (parseInt(window.BilibiliLive.UID, 10) === 0 || isNaN(parseInt(window.BilibiliLive.UID, 10))) {
+                                        if(tryCount > 20){
+                                            window.toast('你还没有登录，助手无法使用！', 'caution');
+                                            p.reject();
+                                            return true;
+                                        }else{
+                                            return false;
+                                        }
+                                    }
                                     const getCookie = (name) => {
                                         let arr;
                                         const reg = new RegExp(`(^| )${name}=([^;]*)(;|$)`);
@@ -2418,11 +2422,6 @@
                                     API.setCommonArgs(Info.csrf_token, '');
                                     const p1 = API.live_user.get_info_in_room(Info.roomid).then((response) => {
                                         DEBUG('InitData: API.live_user.get_info_in_room', response);
-                                        if(response.code!=0){
-                                            window.toast('你还没有登录，助手无法使用！', 'caution');
-                                            p.reject();
-                                            return;
-                                        }
                                         Info.silver = response.data.wallet.silver;
                                         Info.gold = response.data.wallet.gold;
                                         Info.uid = response.data.info.uid;
