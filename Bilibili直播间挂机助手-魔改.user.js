@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.31
-// @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等
+// @version      2.4.4.32
+// @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等，包含恶意代码
 // @author       SeaLoong,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @downloadURL  https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -12,7 +12,7 @@
 // @include      /https?:\/\/api\.live\.bilibili\.com\/_.*/
 // @require      https://code.jquery.com/jquery-3.3.1.min.js
 // @require      https://greasyfork.org/scripts/390500-bilibiliapi-plus/code/BilibiliAPI_Plus.js
-// @require      https://js-1258131272.file.myqcloud.com/OCRAD.min.js
+// @require      https://cdn.jsdelivr.net/gh/SeaLoong/Bilibili-LRHH/OCRAD.min.js
 // @run-at       document-idle
 // @license      MIT License
 // @grant        none
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.31';
+    const VERSION = '2.4.4.32';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -599,6 +599,7 @@
             Config: {
                 CONFIG_DEFAULT: {
                     DD_BP:true,
+                    DD_DM_STORM:true,
                     AUTO_SIGN: true,
                     AUTO_TREASUREBOX: true,
                     AUTO_GROUP_SIGN: true,
@@ -653,6 +654,7 @@
                 },
                 NAME: {
                     DD_BP:'BiliPush推送',
+                    DD_DM_STORM:'DD弹幕风暴',
                     AUTO_SIGN: '自动签到',
                     AUTO_TREASUREBOX: '自动领取银瓜子',
                     AUTO_GROUP_SIGN: '自动应援团签到',
@@ -732,6 +734,7 @@
                 },
                 HELP: {
                     DD_BP:'魔改助手核心监控，启用后由服务器推送全区礼物/舰队/PK（但需要验证使用者身份并带有DD传送门等附加功能）',
+                    DD_DM_STORM:'DD弹幕风暴（娱乐功能），配合DD传送门进行人力节奏风暴，用于活跃直播间气氛。',
                     MOBILE_HEARTBEAT: '发送移动端心跳数据包，可以完成双端观看任务',
                     AUTO_LOTTERY: '设置是否自动参加抽奖功能，包括礼物抽奖、活动抽奖、实物抽奖<br>会占用更多资源并可能导致卡顿，且有封号风险',
                     AUTO_LOTTERY_CONFIG: {
@@ -1057,6 +1060,7 @@
                     if (config.AUTO_GIFT_CONFIG.GIFT_LIMIT < 0) config.AUTO_GIFT_CONFIG.GIFT_LIMIT = 86400;
                     if (config.AUTO_LOTTERY_CONFIG.SLEEP_RANGE === undefined) config.AUTO_LOTTERY_CONFIG.SLEEP_RANGE = Essential.Config.AUTO_LOTTERY_CONFIG.SLEEP_RANGE;
                     if (config.DD_BP === undefined) config.DD_BP = Essential.Config.DD_BP;
+                    if (config.DD_DM_STORM === undefined) config.DD_DM_STORM = Essential.Config.DD_DM_STORM;
                     return config;
                 },
                 _copy: (obj) => {
@@ -3538,7 +3542,6 @@
             RafflePorcess.run();
             TopRankTask.run();
             BiliPush.run();
-            window.BiliPush = BiliPush;
         };
         $.MsgBox = {
             Alert: function(title, msg) {
