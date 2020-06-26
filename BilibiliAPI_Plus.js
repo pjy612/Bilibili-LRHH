@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BilibiliAPI_Plus
 // @namespace    SeaLoong
-// @version      1.4.5.3
+// @version      1.4.5.4
 // @description  BilibiliAPI，PC端抓包研究所得-魔改
 // @author       SeaLoong,pjy612
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
@@ -631,7 +631,7 @@ var BilibiliAPI = {
             getStatus: (aid, times = '') => {
                 // 获取活动信息/状态
                 return BilibiliAPI.ajax({
-                    url: 'lottery/v1/box/getStatus',
+                    url: 'xlive/lottery-interface/v2/Box/getStatus',
                     data: {
                         aid: aid,
                         times: times
@@ -641,7 +641,7 @@ var BilibiliAPI = {
             draw: (aid, number = 1) => {
                 // 参加实物抽奖
                 return BilibiliAPI.ajax({
-                    url: 'lottery/v1/box/draw',
+                    url: 'xlive/lottery-interface/v2/Box/draw',
                     data: {
                         aid: aid,
                         number: number
@@ -651,7 +651,7 @@ var BilibiliAPI = {
             getWinnerGroupInfo: (aid, number = 1) => {
                 // 获取中奖名单
                 return BilibiliAPI.ajax({
-                    url: 'lottery/v1/box/getWinnerGroupInfo',
+                    url: 'xlive/lottery-interface/v2/Box/getWinnerGroupInfo',
                     data: {
                         aid: aid,
                         number: number
