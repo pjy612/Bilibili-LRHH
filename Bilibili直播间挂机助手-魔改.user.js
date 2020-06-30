@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.4.33
+// @version      2.4.5.0
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等，包含恶意代码
-// @author       SeaLoong,pjy612
+// @author       SeaLoong,lzghzr,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @downloadURL  https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @homepageURL  https://github.com/pjy612/Bilibili-LRHH
@@ -13,9 +13,12 @@
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/pjy612/Bilibili-LRHH/BilibiliAPI_Plus.js
 // @require      https://cdn.jsdelivr.net/gh/SeaLoong/Bilibili-LRHH/OCRAD.min.js
+// @require      https://cdn.jsdelivr.net/gh/lzghzr/TampermonkeyJS/libBilibiliToken/libBilibiliToken.user.js
 // @run-at       document-idle
 // @license      MIT License
-// @grant        none
+// @connect      passport.bilibili.com
+// @connect      api.live.bilibili.com
+// @grant        GM_xmlhttpRequest
 // ==/UserScript==
 /*
 瓜子初始化失败问题自行替换上方对应OCRAD源
@@ -33,22 +36,21 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.4.33';
+    const VERSION = '2.4.5.0';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
         if (t - tmpcache.unique_check >= 0 && t - tmpcache.unique_check <= 60) {
+            console.error('魔改脚本重复运行')
             return;
-        }else{
-            //启动脚本时改域 修复天选
-            document.domain = 'bilibili.com';
         }
     }catch(e){
-        document.domain = 'bilibili.com';
     }
     let scriptRuning = false;
     let API;
-    //const window = unsafeWindow;
+    let TokenUtil;
+    let Token;
+    const window = typeof unsafeWindow === 'undefined' ? window : unsafeWindow;
     const isSubScript = () => window.frameElement && window.parent[NAME] && window.frameElement[NAME];
 
     const DEBUGMODE = false || window.top.localStorage.getItem('BLRHH-DEBUG');
@@ -77,7 +79,18 @@
         gift_list: undefined,
         gift_list_str: '礼物对照表',
         blocked: false,
-        awardBlocked:false
+        awardBlocked:false,
+        appToken: undefined
+    };
+    const getAccessToken = async () => {
+        if(Token && TokenUtil){
+            const userToken = await Token.getToken();
+            if (userToken === undefined){
+                console.error('未获取到移动端token,部分功能可能失效');
+            }
+            return userToken;
+        }
+        return null;
     };
 
     const tz_offset = new Date().getTimezoneOffset() + 480;
@@ -115,369 +128,7 @@
         setTimeout(callback, t - ts_ms());
         DEBUG('runTomorrow', t.toString());
     };
-    if (isSubScript()) {
-        try {
-            let host_server_list = [];
-            try {
-                // 拦截弹幕服务器连接
-                const webSocketConstructor = WebSocket.prototype.constructor;
-                WebSocket.prototype.constructor = (url, protocols) => {
-                    return webSocketConstructor(url, protocols);
-                };
-            } catch (err) {};
-            try {
-                // 拦截直播流
-                window.fetch = () => new Promise(() => {
-                    throw new Error();
-                });
-            } catch (err) {};
-            try {
-                // 清空页面元素和节点
-                if(window.location.pathname.indexOf('anchor')!=-1){
-                    //天选的窗口不清空内容
-                }else{
-                    $('html').remove();
-                }
-            } catch (err) {};
-            DEBUG('initing', window.frameElement[NAME]);
-            // 读取父脚本数据
-            window.toast = window.parent.toast;
-            try {
-                API = BilibiliAPI;
-            } catch (err) {
-                window.toast('子页面BilibiliAPI初始化失败，子脚本已停用！', 'error');
-                console.error(`[${NAME}]`, err);
-                return;
-            }
-            Info = window.parent[NAME].Info;
-            CONFIG = window.parent[NAME].CONFIG;
-            CACHE = window.parent[NAME].CACHE;
-            API.setCommonArgs(Info.csrf_token, '');
-            const down = () => {
-                Info = window.parent[NAME].Info;
-                CONFIG = window.parent[NAME].CONFIG;
-                CACHE = window.parent[NAME].CACHE;
-                const pDown = $.Deferred();
-                pDown.then(down);
-                window.frameElement[NAME].promise.down = pDown;
-            };
-            window.frameElement[NAME].promise.down.then(down);
-            const up = () => {
-                window.parent[NAME].Info = Info;
-                window.parent[NAME].CACHE = CACHE;
-                window.frameElement[NAME].promise.up.resolve();
-            };
-            window.frameElement[NAME].promise.init.resolve();
-            if (window.frameElement[NAME].type === 'GROUPSIGN|DAILYREWARD') {
-                const GroupSign = {
-                    getGroups: () => {
-                        return API.Group.my_groups().then((response) => {
-                            DEBUG('GroupSign.getGroups: API.Group.my_groups', response);
-                            if (response.code === 0) return $.Deferred().resolve(response.data.list);
-                            window.toast(`[自动应援团签到]'${response.msg}`, 'caution');
-                            return $.Deferred().reject();
-                        }, () => {
-                            window.toast('[自动应援团签到]获取应援团列表失败，请检查网络', 'error');
-                            return delayCall(() => GroupSign.getGroups());
-                        });
-                    },
-                    signInList: (list, i = 0) => {
-                        if (i >= list.length) return $.Deferred().resolve();
-                        const obj = list[i];
-                        //自己不能给自己的应援团应援
-                        if(obj.owner_uid==Info.uid) return GroupSign.signInList(list, i + 1);
-                        return API.Group.sign_in(obj.group_id, obj.owner_uid).then((response) => {
-                            DEBUG('GroupSign.signInList: API.Group.sign_in', response);
-                            const p = $.Deferred();
-                            if (response.code === 0) {
-                                if (response.data.add_num > 0) {
-                                    window.toast(`[自动应援团签到]应援团(group_id=${obj.group_id},owner_uid=${obj.owner_uid})签到成功，当前勋章亲密度+${response.data.add_num}`, 'success');
-                                    p.resolve();
-                                } else if (response.data.status === 1) {
-                                    p.resolve();
-                                } else {
-                                    p.reject();
-                                }
-                            } else {
-                                window.toast(`[自动应援团签到]'${response.msg}`, 'caution');
-                                return GroupSign.signInList(list, i);
-                            }
-                            return $.when(GroupSign.signInList(list, i + 1), p);
-                        }, () => {
-                            window.toast(`[自动应援团签到]应援团(group_id=${obj.group_id},owner_uid=${obj.owner_uid})签到失败，请检查网络`, 'error');
-                            return delayCall(() => GroupSign.signInList(list, i));
-                        });
-                    },
-                    run: () => {
-                        try {
-                            if (!CONFIG.AUTO_GROUP_SIGN) return $.Deferred().resolve();
-                            if (CACHE.group_sign_ts && !checkNewDay(CACHE.group_sign_ts)) {
-                                // 同一天，不再检查应援团签到
-                                runTomorrow(GroupSign.run);
-                                return $.Deferred().resolve();
-                            }
-                            return GroupSign.getGroups().then((list) => {
-                                return GroupSign.signInList(list).then(() => {
-                                    CACHE.group_sign_ts = ts_ms();
-                                    up();
-                                    runTomorrow(GroupSign.run);
-                                }, () => delayCall(() => GroupSign.run()));
-                            }, () => delayCall(() => GroupSign.run()));
-                        } catch (err) {
-                            window.toast('[自动应援团签到]运行时出现异常，已停止', 'error');
-                            console.error(`[${NAME}]`, err);
-                            return $.Deferred().reject();
-                        }
-                    }
-                }; // Once Run every day "api.live.bilibili.com"
-                const DailyReward = {
-                    coin_exp: 0,
-                    login: () => {
-                        return API.DailyReward.login().then(() => {
-                            DEBUG('DailyReward.login: API.DailyReward.login');
-                            window.toast('[自动每日奖励][每日登录]完成', 'success');
-                        }, () => {
-                            window.toast('[自动每日奖励][每日登录]完成失败，请检查网络', 'error');
-                            return delayCall(() => DailyReward.login());
-                        });
-                    },
-                    watch: (aid, cid) => {
-                        if (!CONFIG.AUTO_DAILYREWARD_CONFIG.WATCH) return $.Deferred().resolve();
-                        return API.DailyReward.watch(aid, cid, Info.uid, ts_s()).then((response) => {
-                            DEBUG('DailyReward.watch: API.DailyReward.watch', response);
-                            if (response.code === 0) {
-                                window.toast(`[自动每日奖励][每日观看]完成(av=${aid})`, 'success');
-                            } else {
-                                window.toast(`[自动每日奖励][每日观看]'${response.msg}`, 'caution');
-                            }
-                        }, () => {
-                            window.toast('[自动每日奖励][每日观看]完成失败，请检查网络', 'error');
-                            return delayCall(() => DailyReward.watch(aid, cid));
-                        });
-                    },
-                    coin: (cards, n, i = 0, one = false) => {
-                        if (!CONFIG.AUTO_DAILYREWARD_CONFIG.COIN) return $.Deferred().resolve();
-                        if (DailyReward.coin_exp >= CONFIG.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER * 10) {
-                            window.toast('[自动每日奖励][每日投币]今日投币已完成', 'info');
-                            return $.Deferred().resolve();
-                        }
-                        if (i >= cards.length) {
-                            window.toast('[自动每日奖励][每日投币]动态里可投币的视频不足', 'caution');
-                            return $.Deferred().resolve();
-                        }
-                        const obj = JSON.parse(cards[i].card);
-                        let num = Math.min(2, n);
-                        if (one) num = 1;
-                        return API.DailyReward.coin(obj.aid, num).then((response) => {
-                            DEBUG('DailyReward.coin: API.DailyReward.coin', response);
-                            if (response.code === 0) {
-                                DailyReward.coin_exp += num * 10;
-                                window.toast(`[自动每日奖励][每日投币]投币成功(av=${obj.aid},num=${num})`, 'success');
-                                return DailyReward.coin(cards, n - num, i + 1);
-                            } else if (response.code === -110) {
-                                window.toast('[自动每日奖励][每日投币]未绑定手机，已停止', 'error');
-                                return $.Deferred().reject();
-                            } else if (response.code === 34003) {
-                                // 非法的投币数量
-                                if (one) return DailyReward.coin(cards, n, i + 1);
-                                return DailyReward.coin(cards, n, i, true);
-                            } else if (response.code === 34005) {
-                                // 塞满啦！先看看库存吧~
-                                return DailyReward.coin(cards, n, i + 1);
-                            }
-                            window.toast(`[自动每日奖励][每日投币]'${response.msg}`, 'caution');
-                            return DailyReward.coin(cards, n, i + 1);
-                        }, () => delayCall(() => DailyReward.coin(cards, n, i)));
-                    },
-                    share: (aid) => {
-                        if (!CONFIG.AUTO_DAILYREWARD_CONFIG.SHARE) return $.Deferred().resolve();
-                        return API.DailyReward.share(aid).then((response) => {
-                            DEBUG('DailyReward.share: API.DailyReward.share', response);
-                            if (response.code === 0) {
-                                window.toast(`[自动每日奖励][每日分享]分享成功(av=${aid})`, 'success');
-                            } else if (response.code === 71000) {
-                                // 重复分享
-                                window.toast('[自动每日奖励][每日分享]今日分享已完成', 'info');
-                            } else {
-                                window.toast(`[自动每日奖励][每日分享]'${response.msg}`, 'caution');
-                            }
-                        }, () => {
-                            window.toast('[自动每日奖励][每日分享]分享失败，请检查网络', 'error');
-                            return delayCall(() => DailyReward.share(aid));
-                        });
-                    },
-                    dynamic: () => {
-                        return API.dynamic_svr.dynamic_new(Info.uid, 8).then((response) => {
-                            DEBUG('DailyReward.dynamic: API.dynamic_svr.dynamic_new', response);
-                            if (response.code === 0) {
-                                if (response.data.cards[0]) {
-                                    const obj = JSON.parse(response.data.cards[0].card);
-                                    const p1 = DailyReward.watch(obj.aid, obj.cid);
-                                    const p2 = DailyReward.coin(response.data.cards, Math.max(CONFIG.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER - DailyReward.coin_exp / 10, 0));
-                                    const p3 = DailyReward.share(obj.aid);
-                                    return $.when(p1, p2, p3);
-                                } else {
-                                    window.toast('[自动每日奖励]"动态-投稿视频"中暂无动态', 'info');
-                                }
-                            } else {
-                                window.toast(`[自动每日奖励]获取"动态-投稿视频"'${response.msg}`, 'caution');
-                            }
-                        }, () => {
-                            window.toast('[自动每日奖励]获取"动态-投稿视频"失败，请检查网络', 'error');
-                            return delayCall(() => DailyReward.dynamic());
-                        });
-                    },
-                    run: () => {
-                        try {
-                            if (!CONFIG.AUTO_DAILYREWARD) return $.Deferred().resolve();
-                            if (CACHE.dailyreward_ts && !checkNewDay(CACHE.dailyreward_ts)) {
-                                // 同一天，不执行每日任务
-                                runTomorrow(DailyReward.run);
-                                return $.Deferred().resolve();
-                            }
-                            return API.DailyReward.exp().then((response) => {
-                                DEBUG('DailyReward.run: API.DailyReward.exp', response);
-                                if (response.code === 0) {
-                                    DailyReward.coin_exp = response.number;
-                                    DailyReward.login();
-                                    return DailyReward.dynamic().then(() => {
-                                        CACHE.dailyreward_ts = ts_ms();
-                                        up();
-                                        runTomorrow(DailyReward.run);
-                                    });
-                                } else {
-                                    window.toast(`[自动每日奖励]${response.message}`, 'caution');
-                                }
-                            }, () => {
-                                window.toast('[自动每日奖励]获取每日奖励信息失败，请检查网络', 'error');
-                                return delayCall(() => DailyReward.run());
-                            });
-                        } catch (err) {
-                            window.toast('[自动每日奖励]运行时出现异常', 'error');
-                            console.error(`[${NAME}]`, err);
-                            return $.Deferred().reject();
-                        }
-                    }
-                }; // Once Run every day "api.live.bilibili.com"
-                const Task = {
-                    interval: 600e3,
-                    double_watch_task: false,
-                    run_timer: undefined,
-                    MobileHeartbeat: false,
-                    PCHeartbeat:false,
-                    run: () => {
-                        try {
-                            if (!CONFIG.AUTO_TASK) return $.Deferred().resolve();
-                            if (!Info.mobile_verify) {
-                                window.toast('[自动完成任务]未绑定手机，已停止', 'caution');
-                                return $.Deferred().resolve();
-                            }
-                            if (Task.run_timer) clearTimeout(Task.run_timer);
-                            if (CACHE.task_ts && !Task.MobileHeartbeat && !Task.PCHeartbeat) {
-                                const diff = ts_ms() - CACHE.task_ts;
-                                if (diff < Task.interval) {
-                                    Task.run_timer = setTimeout(Task.run, Task.interval - diff);
-                                    return $.Deferred().resolve();
-                                }
-                            }
-                            if (Task.MobileHeartbeat) Task.MobileHeartbeat = false;
-                            if (Task.PCHeartbeat) Task.PCHeartbeat = false;
-                            return API.i.taskInfo().then((response) => {
-                                DEBUG('Task.run: API.i.taskInfo', response);
-                                for (const key in response.data) {
-                                    if (typeof response.data[key] === 'object') {
-                                        if (response.data[key].task_id && response.data[key].status === 1) {
-                                            Task.receiveAward(response.data[key].task_id);
-                                        } else if (response.data[key].task_id === 'double_watch_task' && response.data[key].status === 2) Task.double_watch_task = true;
-                                    }
-                                }
-                            }).always(() => {
-                                CACHE.task_ts = ts_ms();
-                                localStorage.setItem(`${NAME}_CACHE`, JSON.stringify(CACHE));
-                                Task.run_timer = setTimeout(Task.run, Task.interval);
-                            }, () => delayCall(() => Task.run()));
-                        } catch (err) {
-                            window.toast('[自动完成任务]运行时出现异常，已停止', 'error');
-                            console.error(`[${NAME}]`, err);
-                            return $.Deferred().reject();
-                        }
-                    },
-                    receiveAward: (task_id) => {
-                        return API.activity.receive_award(task_id).then((response) => {
-                            DEBUG('Task.receiveAward: API.activity.receive_award', response);
-                            if (response.code === 0) {
-                                // 完成任务
-                                window.toast(`[自动完成任务]完成任务：${task_id}`, 'success');
-                                if (task_id === 'double_watch_task') Task.double_watch_task = true;
-                            } else if (response.code === -400) {
-                                // 奖励已领取
-                                // window.toast(`[自动完成任务]${task_id}: ${response.msg}`, 'info');
-                            } else {
-                                window.toast(`[自动完成任务]${task_id}: ${response.msg}`, 'caution');
-                            }
-                        }, () => {
-                            window.toast('[自动完成任务]完成任务失败，请检查网络', 'error');
-                            return delayCall(() => Task.receiveAward(task_id));
-                        });
-                    }
-                }; // Once Run every 10 minutes
-                const MobileHeartbeat = {
-                    run_timer: undefined,
-                    run: () => {
-                        try {
-                            if (!CONFIG.MOBILE_HEARTBEAT) return $.Deferred().resolve();
-                            if (MobileHeartbeat.run_timer && !Task.double_watch_task && Info.mobile_verify) {
-                                Task.MobileHeartbeat = true;
-                                Task.run();
-                            }
-                            if (MobileHeartbeat.run_timer) clearTimeout(MobileHeartbeat.run_timer);
-                            API.HeartBeat.mobile().then(() => {
-                                DEBUG('MobileHeartbeat.run: API.HeartBeat.mobile');
-                                MobileHeartbeat.run_timer = setTimeout(MobileHeartbeat.run, 300e3);
-                            }, () => delayCall(() => MobileHeartbeat.run()));
-                        } catch (err) {
-                            window.toast('[移动端心跳]运行时出现异常，已停止', 'error');
-                            console.error(`[${NAME}]`, err);
-                            return $.Deferred().reject();
-                        }
-                    }
-                }; // Once Run every 5mins
-                const WebHeartbeat = {
-                    run_timer: undefined,
-                    run: () => {
-                        try {
-                            if (!CONFIG.MOBILE_HEARTBEAT) return $.Deferred().resolve();
-                            if (WebHeartbeat.run_timer && !Task.double_watch_task && Info.mobile_verify) {
-                                Task.WebHeartbeat = true;
-                                Task.run();
-                            }
-                            if (WebHeartbeat.run_timer) clearTimeout(WebHeartbeat.run_timer);
-                            API.HeartBeat.web().then(() => {
-                                DEBUG('MobileHeartbeat.run: API.HeartBeat.web');
-                                WebHeartbeat.run_timer = setTimeout(WebHeartbeat.run, 300e3);
-                            }, () => delayCall(() => WebHeartbeat.run()));
-                        } catch (err) {
-                            window.toast('[WEB端心跳]运行时出现异常，已停止', 'error');
-                            console.error(`[${NAME}]`, err);
-                            return $.Deferred().reject();
-                        }
-                    }
-                }; // Once Run every 5mins
-                if (CONFIG.AUTO_GROUP_SIGN) GroupSign.run();
-                if (CONFIG.AUTO_DAILYREWARD) DailyReward.run();
-                if (CONFIG.MOBILE_HEARTBEAT) {
-                    MobileHeartbeat.run();
-                    WebHeartbeat.run();
-                }
-            } else {
-                window.frameElement[NAME].promise.finish.resolve();
-            }
-        } catch (err) {
-            console.error(`[${NAME}]子脚本运行时出现异常，已停止并关闭子页面`);
-            console.error(`[${NAME}]`, err);
-            window.frameElement[NAME].promise.finish.resolve();
-        }
-    } else {
+    if (!isSubScript()) {
         const runUntilSucceed = (callback, delay = 0, period = 100) => {
             setTimeout(() => {
                 if (!callback()) runUntilSucceed(callback, period, period);
@@ -761,7 +412,7 @@
                         HIDE_POPUP: '隐藏位于聊天框下方的抽奖提示框<br>注意：脚本参加抽奖后，部分抽奖仍然可以手动点击参加，为避免小黑屋，不建议点击'
                     },
                     AUTO_GIFT_CONFIG: {
-                        ROOMID: '数组,送礼物的直播间ID(即地址中live.bilibili.com/后面的数字), 设置为0则不送礼，小于0也视为0（因为你没有0的勋章）<br>例如：17171,21438956<br>不管[优先高等级]如何设置，会根据[送满全部勋章]（补满或者只消耗当日到期）条件去优先送17171的，再送21438956<br>之后根据[优先高等级]决定送高级还是低级',
+                        ROOMID: '数组,优先送礼物的直播间ID(即地址中live.bilibili.com/后面的数字), 设置为0则无优先房间，小于0也视为0（因为你没有0的勋章）<br>例如：17171,21438956<br>不管[优先高等级]如何设置，会根据[送满全部勋章]（补满或者只消耗当日到期）条件去优先送17171的，再送21438956<br>之后根据[优先高等级]决定送高级还是低级',
                         GIFT_INTERVAL:'检查间隔(分钟)',
                         GIFT_SORT:'打钩优先赠送高等级勋章，不打勾优先赠送低等级勋章',
                         GIFT_LIMIT:'到期时间范围（秒），86400为1天，时间小于1天的会被送掉',
@@ -1215,67 +866,6 @@
             }
         }; // Once Run every day
 
-        const Task = {
-            interval: 600e3,
-            double_watch_task: false,
-            run_timer: undefined,
-            MobileHeartbeat: false,
-            run: () => {
-                try {
-                    if (!CONFIG.AUTO_TASK) return $.Deferred().resolve();
-                    if (!Info.mobile_verify) {
-                        window.toast('[自动完成任务]未绑定手机，已停止', 'caution');
-                        return $.Deferred().resolve();
-                    }
-                    if (Task.run_timer) clearTimeout(Task.run_timer);
-                    if (CACHE.task_ts && !Task.MobileHeartbeat) {
-                        const diff = ts_ms() - CACHE.task_ts;
-                        if (diff < Task.interval) {
-                            Task.run_timer = setTimeout(Task.run, Task.interval - diff);
-                            return $.Deferred().resolve();
-                        }
-                    }
-                    if (Task.MobileHeartbeat) Task.MobileHeartbeat = false;
-                    return API.i.taskInfo().then((response) => {
-                        DEBUG('Task.run: API.i.taskInfo', response);
-                        for (const key in response.data) {
-                            if (typeof response.data[key] === 'object') {
-                                if (response.data[key].task_id && response.data[key].status === 1) {
-                                    Task.receiveAward(response.data[key].task_id);
-                                } else if (response.data[key].task_id === 'double_watch_task' && response.data[key].status === 2) Task.double_watch_task = true;
-                            }
-                        }
-                    }).always(() => {
-                        CACHE.task_ts = ts_ms();
-                        Essential.Cache.save();
-                        Task.run_timer = setTimeout(Task.run, Task.interval);
-                    }, () => delayCall(() => Task.run()));
-                } catch (err) {
-                    window.toast('[自动完成任务]运行时出现异常，已停止', 'error');
-                    console.error(`[${NAME}]`, err);
-                    return $.Deferred().reject();
-                }
-            },
-            receiveAward: (task_id) => {
-                return API.activity.receive_award(task_id).then((response) => {
-                    DEBUG('Task.receiveAward: API.activity.receive_award', response);
-                    if (response.code === 0) {
-                        // 完成任务
-                        window.toast(`[自动完成任务]完成任务：${task_id}`, 'success');
-                        if (task_id === 'double_watch_task') Task.double_watch_task = true;
-                    } else if (response.code === -400) {
-                        // 奖励已领取
-                        // window.toast(`[自动完成任务]${task_id}: ${response.msg}`, 'info');
-                    } else {
-                        window.toast(`[自动完成任务]${task_id}: ${response.msg}`, 'caution');
-                    }
-                }, () => {
-                    window.toast('[自动完成任务]完成任务失败，请检查网络', 'error');
-                    return delayCall(() => Task.receiveAward(task_id));
-                });
-            }
-        }; // Once Run every 10 minutes
-
         const Gift = {
             interval: 600e3,
             run_timer: undefined,
@@ -1448,9 +1038,262 @@
             }
         }; // Once Run every 10 minutes
 
+        const GroupSign = {
+            getGroups: () => {
+                return API.Group.my_groups().then((response) => {
+                    DEBUG('GroupSign.getGroups: API.Group.my_groups', response);
+                    if (response.code === 0) return $.Deferred().resolve(response.data.list);
+                    window.toast(`[自动应援团签到]'${response.msg}`, 'caution');
+                    return $.Deferred().reject();
+                }, () => {
+                    window.toast('[自动应援团签到]获取应援团列表失败，请检查网络', 'error');
+                    return delayCall(() => GroupSign.getGroups());
+                });
+            },
+            signInList: (list, i = 0) => {
+                if (i >= list.length) return $.Deferred().resolve();
+                const obj = list[i];
+                //自己不能给自己的应援团应援
+                if(obj.owner_uid==Info.uid) return GroupSign.signInList(list, i + 1);
+                return API.Group.sign_in(obj.group_id, obj.owner_uid).then((response) => {
+                    DEBUG('GroupSign.signInList: API.Group.sign_in', response);
+                    const p = $.Deferred();
+                    if (response.code === 0) {
+                        if (response.data.add_num > 0) {
+                            window.toast(`[自动应援团签到]应援团(group_id=${obj.group_id},owner_uid=${obj.owner_uid})签到成功，当前勋章亲密度+${response.data.add_num}`, 'success');
+                            p.resolve();
+                        } else if (response.data.status === 1) {
+                            p.resolve();
+                        } else {
+                            p.reject();
+                        }
+                    } else {
+                        window.toast(`[自动应援团签到]'${response.msg}`, 'caution');
+                        return GroupSign.signInList(list, i);
+                    }
+                    return $.when(GroupSign.signInList(list, i + 1), p);
+                }, () => {
+                    window.toast(`[自动应援团签到]应援团(group_id=${obj.group_id},owner_uid=${obj.owner_uid})签到失败，请检查网络`, 'error');
+                    return delayCall(() => GroupSign.signInList(list, i));
+                });
+            },
+            run: () => {
+                try {
+                    if (!CONFIG.AUTO_GROUP_SIGN) return $.Deferred().resolve();
+                    if (CACHE.group_sign_ts && !checkNewDay(CACHE.group_sign_ts)) {
+                        // 同一天，不再检查应援团签到
+                        runTomorrow(GroupSign.run);
+                        return $.Deferred().resolve();
+                    }
+                    return GroupSign.getGroups().then((list) => {
+                        return GroupSign.signInList(list).then(() => {
+                            CACHE.group_sign_ts = ts_ms();
+                            runTomorrow(GroupSign.run);
+                        }, () => delayCall(() => GroupSign.run()));
+                    }, () => delayCall(() => GroupSign.run()));
+                } catch (err) {
+                    window.toast('[自动应援团签到]运行时出现异常，已停止', 'error');
+                    console.error(`[${NAME}]`, err);
+                    return $.Deferred().reject();
+                }
+            }
+        }; // Once Run every day "api.live.bilibili.com"
+        const DailyReward = {
+            coin_exp: 0,
+            login: () => {
+                return API.DailyReward.login().then(() => {
+                    DEBUG('DailyReward.login: API.DailyReward.login');
+                    window.toast('[自动每日奖励][每日登录]完成', 'success');
+                }, () => {
+                    window.toast('[自动每日奖励][每日登录]完成失败，请检查网络', 'error');
+                    return delayCall(() => DailyReward.login());
+                });
+            },
+            watch: (aid, cid) => {
+                if (!CONFIG.AUTO_DAILYREWARD_CONFIG.WATCH) return $.Deferred().resolve();
+                return API.DailyReward.watch(aid, cid, Info.uid, ts_s()).then((response) => {
+                    DEBUG('DailyReward.watch: API.DailyReward.watch', response);
+                    if (response.code === 0) {
+                        window.toast(`[自动每日奖励][每日观看]完成(av=${aid})`, 'success');
+                    } else {
+                        window.toast(`[自动每日奖励][每日观看]'${response.msg}`, 'caution');
+                    }
+                }, () => {
+                    window.toast('[自动每日奖励][每日观看]完成失败，请检查网络', 'error');
+                    return delayCall(() => DailyReward.watch(aid, cid));
+                });
+            },
+            coin: (cards, n, i = 0, one = false) => {
+                if (!CONFIG.AUTO_DAILYREWARD_CONFIG.COIN) return $.Deferred().resolve();
+                if (DailyReward.coin_exp >= CONFIG.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER * 10) {
+                    window.toast('[自动每日奖励][每日投币]今日投币已完成', 'info');
+                    return $.Deferred().resolve();
+                }
+                if (i >= cards.length) {
+                    window.toast('[自动每日奖励][每日投币]动态里可投币的视频不足', 'caution');
+                    return $.Deferred().resolve();
+                }
+                const obj = JSON.parse(cards[i].card);
+                let num = Math.min(2, n);
+                if (one) num = 1;
+                return API.DailyReward.coin(obj.aid, num).then((response) => {
+                    DEBUG('DailyReward.coin: API.DailyReward.coin', response);
+                    if (response.code === 0) {
+                        DailyReward.coin_exp += num * 10;
+                        window.toast(`[自动每日奖励][每日投币]投币成功(av=${obj.aid},num=${num})`, 'success');
+                        return DailyReward.coin(cards, n - num, i + 1);
+                    } else if (response.code === -110) {
+                        window.toast('[自动每日奖励][每日投币]未绑定手机，已停止', 'error');
+                        return $.Deferred().reject();
+                    } else if (response.code === 34003) {
+                        // 非法的投币数量
+                        if (one) return DailyReward.coin(cards, n, i + 1);
+                        return DailyReward.coin(cards, n, i, true);
+                    } else if (response.code === 34005) {
+                        // 塞满啦！先看看库存吧~
+                        return DailyReward.coin(cards, n, i + 1);
+                    }
+                    window.toast(`[自动每日奖励][每日投币]'${response.msg}`, 'caution');
+                    return DailyReward.coin(cards, n, i + 1);
+                }, () => delayCall(() => DailyReward.coin(cards, n, i)));
+            },
+            share: (aid) => {
+                if (!CONFIG.AUTO_DAILYREWARD_CONFIG.SHARE) return $.Deferred().resolve();
+                return API.DailyReward.share(aid).then((response) => {
+                    DEBUG('DailyReward.share: API.DailyReward.share', response);
+                    if (response.code === 0) {
+                        window.toast(`[自动每日奖励][每日分享]分享成功(av=${aid})`, 'success');
+                    } else if (response.code === 71000) {
+                        // 重复分享
+                        window.toast('[自动每日奖励][每日分享]今日分享已完成', 'info');
+                    } else {
+                        window.toast(`[自动每日奖励][每日分享]'${response.msg}`, 'caution');
+                    }
+                }, () => {
+                    window.toast('[自动每日奖励][每日分享]分享失败，请检查网络', 'error');
+                    return delayCall(() => DailyReward.share(aid));
+                });
+            },
+            dynamic: () => {
+                return API.dynamic_svr.dynamic_new(Info.uid, 8).then((response) => {
+                    DEBUG('DailyReward.dynamic: API.dynamic_svr.dynamic_new', response);
+                    if (response.code === 0) {
+                        if (response.data.cards[0]) {
+                            const obj = JSON.parse(response.data.cards[0].card);
+                            const p1 = DailyReward.watch(obj.aid, obj.cid);
+                            const p2 = DailyReward.coin(response.data.cards, Math.max(CONFIG.AUTO_DAILYREWARD_CONFIG.COIN_CONFIG.NUMBER - DailyReward.coin_exp / 10, 0));
+                            const p3 = DailyReward.share(obj.aid);
+                            return $.when(p1, p2, p3);
+                        } else {
+                            window.toast('[自动每日奖励]"动态-投稿视频"中暂无动态', 'info');
+                        }
+                    } else {
+                        window.toast(`[自动每日奖励]获取"动态-投稿视频"'${response.msg}`, 'caution');
+                    }
+                }, () => {
+                    window.toast('[自动每日奖励]获取"动态-投稿视频"失败，请检查网络', 'error');
+                    return delayCall(() => DailyReward.dynamic());
+                });
+            },
+            run: () => {
+                try {
+                    if (!CONFIG.AUTO_DAILYREWARD) return $.Deferred().resolve();
+                    if (CACHE.dailyreward_ts && !checkNewDay(CACHE.dailyreward_ts)) {
+                        // 同一天，不执行每日任务
+                        runTomorrow(DailyReward.run);
+                        return $.Deferred().resolve();
+                    }
+                    return API.DailyReward.exp().then((response) => {
+                        DEBUG('DailyReward.run: API.DailyReward.exp', response);
+                        if (response.code === 0) {
+                            DailyReward.coin_exp = response.number;
+                            DailyReward.login();
+                            return DailyReward.dynamic().then(() => {
+                                CACHE.dailyreward_ts = ts_ms();
+                                runTomorrow(DailyReward.run);
+                            });
+                        } else {
+                            window.toast(`[自动每日奖励]${response.message}`, 'caution');
+                        }
+                    }, () => {
+                        window.toast('[自动每日奖励]获取每日奖励信息失败，请检查网络', 'error');
+                        return delayCall(() => DailyReward.run());
+                    });
+                } catch (err) {
+                    window.toast('[自动每日奖励]运行时出现异常', 'error');
+                    console.error(`[${NAME}]`, err);
+                    return $.Deferred().reject();
+                }
+            }
+        }; // Once Run every day "api.live.bilibili.com"
+        const Task = {
+            interval: 600e3,
+            double_watch_task: false,
+            run_timer: undefined,
+            MobileHeartbeat: false,
+            PCHeartbeat:false,
+            run: async () => {
+                try {
+                    if (!CONFIG.AUTO_TASK) return $.Deferred().resolve();
+                    if (!Info.mobile_verify) {
+                        window.toast('[自动完成任务]未绑定手机，已停止', 'caution');
+                        return $.Deferred().resolve();
+                    }
+                    if (Task.run_timer) clearTimeout(Task.run_timer);
+                    if (CACHE.task_ts && !Task.MobileHeartbeat && !Task.PCHeartbeat) {
+                        const diff = ts_ms() - CACHE.task_ts;
+                        if (diff < Task.interval) {
+                            Task.run_timer = setTimeout(Task.run, Task.interval - diff);
+                            return $.Deferred().resolve();
+                        }
+                    }
+                    if (Task.MobileHeartbeat) Task.MobileHeartbeat = false;
+                    if (Task.PCHeartbeat) Task.PCHeartbeat = false;
+                    if(Token && TokenUtil && Info.appToken){
+                        await BiliPushUtils.API.Heart.mobile_info();
+                    }
+                    return API.i.taskInfo().then((response) => {
+                        DEBUG('Task.run: API.i.taskInfo', response);
+                        for (const key in response.data) {
+                            if (typeof response.data[key] === 'object') {
+                                if (response.data[key].task_id && response.data[key].status === 1) {
+                                    Task.receiveAward(response.data[key].task_id);
+                                } else if (response.data[key].task_id === 'double_watch_task' && response.data[key].status === 2) Task.double_watch_task = true;
+                            }
+                        }
+                    }).always(() => {
+                        CACHE.task_ts = ts_ms();
+                        localStorage.setItem(`${NAME}_CACHE`, JSON.stringify(CACHE));
+                        Task.run_timer = setTimeout(Task.run, Task.interval);
+                    }, () => delayCall(() => Task.run()));
+                } catch (err) {
+                    window.toast('[自动完成任务]运行时出现异常，已停止', 'error');
+                    console.error(`[${NAME}]`, err);
+                    return $.Deferred().reject();
+                }
+            },
+            receiveAward: async (task_id) => {
+                return API.activity.receive_award(task_id).then((response) => {
+                    DEBUG('Task.receiveAward: API.activity.receive_award', response);
+                    if (response.code === 0) {
+                        // 完成任务
+                        window.toast(`[自动完成任务]完成任务：${task_id}`, 'success');
+                        if (task_id === 'double_watch_task') Task.double_watch_task = true;
+                    } else if (response.code === -400) {
+                        // 奖励已领取
+                        // window.toast(`[自动完成任务]${task_id}: ${response.msg}`, 'info');
+                    } else {
+                        window.toast(`[自动完成任务]${task_id}: ${response.msg}`, 'caution');
+                    }
+                }, () => {
+                    window.toast('[自动完成任务]完成任务失败，请检查网络', 'error');
+                    return delayCall(() => Task.receiveAward(task_id));
+                });
+            }
+        }; // Once Run every 10 minutes
         const MobileHeartbeat = {
             run_timer: undefined,
-            run: () => {
+            run:async () => {
                 try {
                     if (!CONFIG.MOBILE_HEARTBEAT) return $.Deferred().resolve();
                     if (MobileHeartbeat.run_timer && !Task.double_watch_task && Info.mobile_verify) {
@@ -1458,20 +1301,34 @@
                         Task.run();
                     }
                     if (MobileHeartbeat.run_timer) clearTimeout(MobileHeartbeat.run_timer);
-                    return API.HeartBeat.mobile().then(() => {
+                    //API.HeartBeat.mobile
+                    BiliPushUtils.API.Heart.mobile().then((rsp) => {
                         DEBUG('MobileHeartbeat.run: API.HeartBeat.mobile');
                         MobileHeartbeat.run_timer = setTimeout(MobileHeartbeat.run, 300e3);
                     }, () => delayCall(() => MobileHeartbeat.run()));
-                    /*
-                    return BiliPushUtils.API.Heart.mobile().then((rsp)=>{
-                        DEBUG('MobileHeartbeat.run: API.HeartBeat.mobile',JSON.parse(rsp.responseText));
-                        MobileHeartbeat.run_timer = setTimeout(MobileHeartbeat.run, 300e3);
-                    }).catch((rsp)=>{
-                        return delayCall(() => MobileHeartbeat.run())
-                    });
-                    */
                 } catch (err) {
                     window.toast('[移动端心跳]运行时出现异常，已停止', 'error');
+                    console.error(`[${NAME}]`, err);
+                    return $.Deferred().reject();
+                }
+            }
+        }; // Once Run every 5mins
+        const WebHeartbeat = {
+            run_timer: undefined,
+            run: () => {
+                try {
+                    if (!CONFIG.MOBILE_HEARTBEAT) return $.Deferred().resolve();
+                    if (WebHeartbeat.run_timer && !Task.double_watch_task && Info.mobile_verify) {
+                        Task.WebHeartbeat = true;
+                        Task.run();
+                    }
+                    if (WebHeartbeat.run_timer) clearTimeout(WebHeartbeat.run_timer);
+                    API.HeartBeat.web().then(() => {
+                        DEBUG('MobileHeartbeat.run: API.HeartBeat.web');
+                        WebHeartbeat.run_timer = setTimeout(WebHeartbeat.run, 300e3);
+                    }, () => delayCall(() => WebHeartbeat.run()));
+                } catch (err) {
+                    window.toast('[WEB端心跳]运行时出现异常，已停止', 'error');
                     console.error(`[${NAME}]`, err);
                     return $.Deferred().reject();
                 }
@@ -1666,13 +1523,15 @@
                             window.toast('[自动领取瓜子]未绑定手机，已停止', 'caution');
                             return $.Deferred().reject();
                         case -500: // -500：领取时间未到, 请稍后再试
-                            const p = $.Deferred();
-                            setTimeout(() => {
-                                TreasureBox.captcha.calc().then((captcha) => {
-                                    TreasureBox.getAward(captcha, cnt + 1).then(() => p.resolve(), () => p.reject());
-                                }, () => p.reject());
-                            }, 3e3);
-                            return p;
+                            {
+                                const p = $.Deferred();
+                                setTimeout(() => {
+                                    TreasureBox.captcha.calc().then((captcha) => {
+                                        TreasureBox.getAward(captcha, cnt + 1).then(() => p.resolve(), () => p.reject());
+                                    }, () => p.reject());
+                                }, 3e3);
+                                return p;
+                            }
                         case 400: // 400: 访问被拒绝
                             if (response.msg.indexOf('拒绝') > -1) {
                                 Info.awardBlocked = true;
@@ -1954,14 +1813,14 @@
                     DEBUG('Lottery.MaterialObject.check: aid=', aid);
                     return API.Lottery.MaterialObject.getStatus(aid).then((response) => {
                         DEBUG('Lottery.MaterialObject.check: API.Lottery.MaterialObject.getStatus', response);
-                        if (response.code === 0) {
+                        if (response.code === 0 && response.data) {
                             if (CONFIG.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.IGNORE_QUESTIONABLE_LOTTERY && Lottery.MaterialObject.ignore_keyword.some(v => response.data.title.toLowerCase().indexOf(v) > -1)) {
                                 window.toast(`[自动抽奖][实物抽奖]忽略抽奖(aid=${aid})`, 'info');
                                 return Lottery.MaterialObject.check(aid + 1, aid);
                             } else {
                                 return Lottery.MaterialObject.join(aid, response.data.title, response.data.typeB).then(() => Lottery.MaterialObject.check(aid + 1, aid));
                             }
-                        } else if (response.code === -400) { // 活动不存在
+                        } else if (response.code === -400 || response.data == null ) { // 活动不存在
                             if (rem) return Lottery.MaterialObject.check(aid + 1, valid, rem - 1);
                             return $.Deferred().resolve(valid);
                         } else {
@@ -2347,6 +2206,15 @@
                         console.error(`[${NAME}]`, err);
                         return p1.reject();
                     }
+                    try{
+                        TokenUtil = BilibiliToken;
+                        Token = new TokenUtil();
+                    }catch (err) {
+                        TokenUtil = null;
+                        Token = null;
+                        window.toast('BilibiliToken 初始化失败，移动端功能可能失效！', 'error');
+                        console.error(`[${NAME}]`, err);
+                    }
                     const uniqueCheck = () => {
                         const p1 = $.Deferred();
                         const t = Date.now() / 1000;
@@ -2607,7 +2475,7 @@
                 let url = (setting.url.substr(0, 2) === '//' ? '' : '//api.live.bilibili.com/') + setting.url;
                 let option = {
                     method:setting.method || "GET",
-                    headers:{},
+                    headers:setting.headers || {},
                     credentials: 'include',
                     mode: 'cors'
                 };
@@ -2636,16 +2504,22 @@
             corsAjax:(setting)=>{
                 const p = jQuery.Deferred();
                 runUntilSucceed(() => {
-                    let option = BiliPushUtils._corsAjaxSetting(setting);
-                    option.onload=(rsp)=>{
-                        p.resolve(rsp);
-                        return true;
-                    };
-                    option.onerror=(err)=>{
-                        p.reject(err);
-                        return true;
-                    }
-                    GM_xmlhttpRequest(option);
+                    return new Promise(success=>{
+                        let option = BiliPushUtils._corsAjaxSetting(setting);
+                        option.onload=(rsp)=>{
+                            if(rsp.response){
+                                p.resolve(JSON.parse(rsp.response));
+                            }else{
+                                p.resolve(rsp);
+                            }
+                            success();
+                        };
+                        option.onerror=(err)=>{
+                            p.reject(err);
+                            success();
+                        }
+                        GM_xmlhttpRequest(option);
+                    });
                 });
                 return p;
             },
@@ -2654,7 +2528,7 @@
                 let option = {
                     url:url,
                     method:setting.method || "GET",
-                    headers:{},
+                    headers:setting.headers ||{},
                 };
                 if(option.method=="GET"){
                     if(setting.data){
@@ -2710,11 +2584,40 @@
                     }
                 },
                 Heart:{
-                    mobile:(success)=>{
+                    mobile:()=>{
+                        let appheaders = {};
+                        let param = "";
+                        if(Token && TokenUtil){
+                            appheaders = Token.headers
+                            if(Info.appToken){
+                                param = TokenUtil.signQuery({
+                                    access_key:Info.appToken.access_token
+                                });
+                            }
+                        }
                         return BiliPushUtils.corsAjaxWithCommonArgs({
                             method: 'POST',
-                            url: 'mobile/userOnlineHeart',
-                            data: {'roomid': 23058, 'scale': 'xhdpi'}
+                            url: `mobile/userOnlineHeart?${param}`,
+                            data: {'roomid': 21438956, 'scale': 'xhdpi'},
+                            headers:appheaders
+                        });
+                    },
+                    mobile_info:()=>{
+                        let param =TokenUtil.signQuery(KeySign.sort({
+                            access_key:Info.appToken.access_token,
+                            room_id:21438956,
+                            appkey:TokenUtil.appKey,
+                            actionKey:'appkey',
+                            build:5561000,
+                            channel:'bili',
+                            device:'android',
+                            mobi_app:'android',
+                            platform:'android',
+                        }));
+                        return BiliPushUtils.corsAjaxWithCommonArgs({
+                            method: 'GET',
+                            url: `xlive/app-room/v1/index/getInfoByUser?${param}`,
+                            headers:Token.headers
                         });
                     },
                     pc:(success)=>{
@@ -2754,6 +2657,26 @@
                                 roomid: roomid
                             }
                             ,roomid:roomid
+                        });
+                    },
+                    join_ex: (id, roomid ,captcha_token="", captcha_phrase="", color = 15937617) => {
+                        // 参加节奏风暴
+                        let param = TokenUtil.signQuery(KeySign.sort({
+                            id:id,
+                            access_key:Info.appToken.access_token,
+                            appkey:TokenUtil.appKey,
+                            actionKey:'appkey',
+                            build:5561000,
+                            channel:'bili',
+                            device:'android',
+                            mobi_app:'android',
+                            platform:'android',
+                        }));
+                        return BiliPushUtils.corsAjaxWithCommonArgs({
+                            method: 'POST',
+                            url: `xlive/lottery-interface/v1/storm/Join?${param}`,
+                            headers:Token.headers,
+                            roomid:roomid
                         });
                     }
                 },
@@ -3007,7 +2930,7 @@
                     }
                     var count = 0;
                     window.toast(`[自动抽奖][节奏风暴]尝试抽奖(roomid=${roomid},id=${id})`, 'success');
-                    function process(){
+                    async function process(){
                         try{
                             if(!BiliPushUtils.Storm.check(id)){
                                 clearInterval(stormInterval);
@@ -3028,7 +2951,13 @@
                                 window.toast(`[自动抽奖][节奏风暴]抽奖(roomid=${roomid},id=${id})到达尝试次数。\r\n尝试次数:${count},距离到期:${endtime-timenow}s`, 'caution');
                                 return;
                             }
-                            return BiliPushUtils.API.Storm.join(id,roomid).then((response) => {
+                            let response;
+                            try{
+                                if(Token && TokenUtil && Info.appToken){
+                                    response = await BiliPushUtils.API.Storm.join_ex(id,roomid);
+                                }else{
+                                    response = await BiliPushUtils.API.Storm.join(id,roomid);
+                                }
                                 DEBUG('BiliPushUtils.Storm.join: BiliPushUtils.API.Storm.join', response);
                                 if(response.code){
                                     if(response.msg.indexOf("领取")!=-1){
@@ -3064,13 +2993,13 @@
                                     clearInterval(stormInterval);
                                     return;
                                 }
-                            },(e,e1,e2) => {
+                            }catch(e){
                                 BiliPushUtils.Storm.over(id);
                                 window.toast(`[自动抽奖][节奏风暴]抽奖(roomid=${roomid},id=${id})疑似触发风控,终止！\r\n尝试次数:${count}`, 'error');
-                                console.error(e,e1,e2);
+                                console.error(e);
                                 clearInterval(stormInterval);
                                 return;
-                            });
+                            }
                         }
                         catch(e){
                             BiliPushUtils.Storm.over(id);
@@ -3526,13 +3455,29 @@
                 window.alertdialog('当日礼物统计', gifts.join('<br>'));
             },
         };
-
-        const Run = () => {
+        const KeySign = {
+            sort:(obj)=>{
+                let keys = Object.keys(obj).sort();
+                let p=[];
+                for(let key of keys){
+                    p.push(`${key}=${obj[key]}`);
+                }
+                return p.join('&');
+            }
+        }
+        const Run = async () => {
+            Info.appToken = await getAccessToken();
             // 每天一次
             Statistics.run();
             if (CONFIG.AUTO_SIGN) Sign.run();
             if (CONFIG.SILVER2COIN) Exchange.run();
-            if (CONFIG.AUTO_GROUP_SIGN || CONFIG.AUTO_DAILYREWARD) createIframe('//api.live.bilibili.com', 'GROUPSIGN|DAILYREWARD');
+            if (CONFIG.AUTO_GROUP_SIGN) GroupSign.run();
+            if (CONFIG.AUTO_DAILYREWARD) DailyReward.run();
+            if (CONFIG.MOBILE_HEARTBEAT) {
+                MobileHeartbeat.run();
+                WebHeartbeat.run();
+            }
+            //if (CONFIG.AUTO_GROUP_SIGN || CONFIG.AUTO_DAILYREWARD) createIframe('//api.live.bilibili.com', 'GROUPSIGN|DAILYREWARD');
             // 每过一定时间一次
             if (CONFIG.AUTO_TASK) Task.run();
             if (CONFIG.AUTO_GIFT) Gift.run();
