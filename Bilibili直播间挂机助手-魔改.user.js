@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.5.0
+// @version      2.4.5.1
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -36,7 +36,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.5.0';
+    const VERSION = '2.4.5.1';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -1250,6 +1250,7 @@
                     if (Task.MobileHeartbeat) Task.MobileHeartbeat = false;
                     if (Task.PCHeartbeat) Task.PCHeartbeat = false;
                     if(Token && TokenUtil && Info.appToken){
+                        await BiliPushUtils.API.Heart.mobile_login();
                         await BiliPushUtils.API.Heart.mobile_info();
                     }
                     return API.i.taskInfo().then((response) => {
@@ -2507,10 +2508,10 @@
                     return new Promise(success=>{
                         let option = BiliPushUtils._corsAjaxSetting(setting);
                         option.onload=(rsp)=>{
-                            if(rsp.response){
-                                p.resolve(JSON.parse(rsp.response));
+                            if(rsp.status == 200){
+                                p.resolve(rsp.response);
                             }else{
-                                p.resolve(rsp);
+                                p.reject(rsp);
                             }
                             success();
                         };
@@ -2529,6 +2530,7 @@
                     url:url,
                     method:setting.method || "GET",
                     headers:setting.headers ||{},
+                    responseType:'json',
                 };
                 if(option.method=="GET"){
                     if(setting.data){
@@ -2590,16 +2592,33 @@
                         if(Token && TokenUtil){
                             appheaders = Token.headers
                             if(Info.appToken){
-                                param = TokenUtil.signQuery({
-                                    access_key:Info.appToken.access_token
-                                });
+                                param = TokenUtil.signQuery(KeySign.sort({
+                                    access_key:Info.appToken.access_token,
+                                    appkey:TokenUtil.appKey,
+                                    actionKey:'appkey',
+                                    build:5561000,
+                                    channel:'bili',
+                                    device:'android',
+                                    mobi_app:'android',
+                                    platform:'android',
+                                }));
                             }
                         }
-                        return BiliPushUtils.corsAjaxWithCommonArgs({
+                        return BiliPushUtils.corsAjax({
                             method: 'POST',
-                            url: `mobile/userOnlineHeart?${param}`,
-                            data: {'roomid': 21438956, 'scale': 'xhdpi'},
+                            url: `heartbeat/v1/OnLine/mobileOnline?${param}`,
+                            data: {'roomid': 21438956, 'scale': 'xxhdpi'},
                             headers:appheaders
+                        });
+                    },
+                    mobile_login:()=>{
+                        let param =TokenUtil.signLoginQuery(KeySign.sort({
+                            access_key:Info.appToken.access_token
+                        }));
+                        return BiliPushUtils.corsAjax({
+                            method: 'GET',
+                            url: `//passport.bilibili.com/x/passport-login/oauth2/info?${param}`,
+                            headers:Token.headers
                         });
                     },
                     mobile_info:()=>{
@@ -2614,7 +2633,7 @@
                             mobi_app:'android',
                             platform:'android',
                         }));
-                        return BiliPushUtils.corsAjaxWithCommonArgs({
+                        return BiliPushUtils.corsAjax({
                             method: 'GET',
                             url: `xlive/app-room/v1/index/getInfoByUser?${param}`,
                             headers:Token.headers
