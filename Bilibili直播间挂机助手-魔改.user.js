@@ -13,7 +13,7 @@
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/pjy612/Bilibili-LRHH/BilibiliAPI_Plus.js
 // @require      https://cdn.jsdelivr.net/gh/SeaLoong/Bilibili-LRHH/OCRAD.min.js
-// @require      https://cdn.jsdelivr.net/gh/lzghzr/TampermonkeyJS/libBilibiliToken/libBilibiliToken.user.js
+// @require      https://cdn.jsdelivr.net/gh/pjy612/Bilibili-LRHH/libBilibiliToken.user.js
 // @run-at       document-idle
 // @license      MIT License
 // @connect      passport.bilibili.com
