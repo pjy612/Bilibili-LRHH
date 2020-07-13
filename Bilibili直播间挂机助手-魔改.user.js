@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.5.3
+// @version      2.4.5.4
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
-// @updateURL    https://www.wkr.moe/Bilibili-LRHH/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
-// @downloadURL  https://www.wkr.moe/Bilibili-LRHH/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @downloadURL  https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @homepageURL  https://github.com/pjy612/Bilibili-LRHH
 // @supportURL   https://github.com/pjy612/Bilibili-LRHH/issues
 // @include      /https?:\/\/live\.bilibili\.com\/[blanc\/]?[^?]*?\d+\??.*/
@@ -36,7 +36,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.5.3';
+    const VERSION = '2.4.5.4';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -1259,17 +1259,24 @@
                     }
                     if (Task.MobileHeartbeat) Task.MobileHeartbeat = false;
                     if (Task.PCHeartbeat) Task.PCHeartbeat = false;
-                    if(Token && TokenUtil && Info.appToken){
-                        //await BiliPushUtils.API.Heart.mobile_login();
-                        await BiliPushUtils.API.Heart.mobile_info();
-                    }
-                    return API.i.taskInfo().then((response) => {
+                    return API.i.taskInfo().then(async (response) => {
                         DEBUG('Task.run: API.i.taskInfo', response);
                         for (const key in response.data) {
                             if (typeof response.data[key] === 'object') {
                                 if (response.data[key].task_id && response.data[key].status === 1) {
-                                    Task.receiveAward(response.data[key].task_id);
-                                } else if (response.data[key].task_id === 'double_watch_task' && response.data[key].status === 2) Task.double_watch_task = true;
+                                    await Task.receiveAward(response.data[key].task_id);
+                                }else if (response.data[key].task_id === 'double_watch_task'){
+                                    if(response.data[key].status === 0){
+                                        Task.double_watch_task = false;
+                                        if(Token && TokenUtil && Info.appToken && !Task.double_watch_task){
+                                            await BiliPushUtils.API.Heart.mobile_info();
+                                        }
+                                    }else if(response.data[key].status === 2){
+                                        Task.double_watch_task = true;
+                                    }else{
+                                        Task.double_watch_task = false;
+                                    }
+                                }
                             }
                         }
                     }).always(() => {
@@ -1307,6 +1314,7 @@
             run:async () => {
                 try {
                     if (!CONFIG.MOBILE_HEARTBEAT) return $.Deferred().resolve();
+                    if(Task.double_watch_task) return $.Deferred().resolve();
                     if (MobileHeartbeat.run_timer && !Task.double_watch_task && Info.mobile_verify) {
                         Task.MobileHeartbeat = true;
                         Task.run();
