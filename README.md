@@ -75,7 +75,6 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
         ```js
         [greasyfork源]
         // @require      https://greasyfork.org/scripts/38140-bilibiliapi/code/BilibiliAPI.js
-        // @require      https://greasyfork.org/scripts/44866-ocrad/code/OCRAD.js
         [github源]
         // @require      https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/BilibiliAPI.js
         // @require      https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/OCRAD.min.js
@@ -138,6 +137,9 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
 -----------------
 
 ## 更新日志
+> ###  2020-07-18 (Version 2.4.5.6)
+>     B站改了个Api...然后还没啥用...然后他喵的又改回去了 fuck
+>
 > ###  2020-07-18 (Version 2.4.5.5)
 >     B站改了个Api...然后还没啥用...
 >
