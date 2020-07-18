@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.5.5
+// @version      2.4.5.6
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
-// @updateURL    https://www.wkr.moe/Bilibili-LRHH/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
-// @downloadURL  https://www.wkr.moe/Bilibili-LRHH/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @downloadURL  https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @homepageURL  https://github.com/pjy612/Bilibili-LRHH
 // @supportURL   https://github.com/pjy612/Bilibili-LRHH/issues
 // @include      /https?:\/\/live\.bilibili\.com\/[blanc\/]?[^?]*?\d+\??.*/
@@ -36,7 +36,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.5.5';
+    const VERSION = '2.4.5.6';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2321,14 +2321,22 @@
                                     });
                                     const p2 = API.gift.gift_config().then((response) => {
                                         DEBUG('InitData: API.gift.gift_config', response);
-                                        Info.gift_list = response.data.list;
+                                        if($.type(response.data)=="array"){
+                                            Info.gift_list = response.data;
+                                        }else if($.type(response.data.list)=="array"){
+                                            Info.gift_list = response.data.list;
+                                        }else{
+                                            Info.gift_list = [];
+                                            window.toast('直播间礼物数据获取失败', 'error');
+                                            return;
+                                        }
                                         Info.gift_list.forEach((v, i) => {
                                             if (i % 3 === 0) Info.gift_list_str += '<br>';
                                             Info.gift_list_str += `${v.id}：${v.name}`;
                                             if (i < Info.gift_list.length - 1) Info.gift_list_str += '，';
                                         });
                                     });
-                                    $.when(p1).then(() => {
+                                    $.when(p1, p2).then(() => {
                                         if (parseInt(window.BilibiliLive.UID, 10) === 0 || isNaN(parseInt(window.BilibiliLive.UID, 10))) {
                                             window.toast('你还没有登录，助手无法使用！', 'caution');
                                             p.reject();
