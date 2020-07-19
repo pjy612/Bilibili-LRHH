@@ -2814,10 +2814,34 @@
                 },
                 checkSleep:()=>{
                     let srange = BiliPushUtils.Check.sleepTimeRange;
-                    const now = new Date();
-                    const nh = now.getHours();
-                    const nm = now.getMinutes();
-                    let f = srange.find(it=>(it.bh==nh && it.bm<=nm) || it.bh<nh && it.eh>nh || (it.eh==nh && it.em>=nm));
+                    function inTimeArea(sH, eH, sM, eM) {
+                        if (sH > 23 || eH > 24 || sH < 0 || eH < 1 || sM > 59 || sM < 0 || eM > 59 || eM < 0) {
+                            return false
+                        }
+                        let myDate = new Date();
+                        let h = myDate.getHours();
+                        let m = myDate.getMinutes();
+                        if (sH < eH) {
+                            if (h >= sH && h < eH)
+                                return true;
+                            else if (h == eH && m >= sM && m < eM)
+                                return true;
+                            else return false;
+                        }
+                        else if (sH > eH) {
+                            if (h >= sH || h < eH)
+                                return true;
+                            else if (h == eH && m >= sM && m < eM)
+                                return true;
+                            else return false;
+                        }
+                        else if (sH == eH) {
+                            if (h == sH && m >= sM && m < eM)
+                                return true
+                            else return false;
+                        }
+                    }
+                    let f = srange.find(it=>inTimeArea(it.bh,it.eh,it.bm,it.em));
                     return f;
                 },
                 start:async ()=>{
