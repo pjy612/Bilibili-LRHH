@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.5.6
+// @version      2.4.5.7
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -22,8 +22,6 @@
 // ==/UserScript==
 /*
 瓜子初始化失败问题自行替换上方对应OCRAD源
-[greasyfork源]
-// @require      https://greasyfork.org/scripts/44866-ocrad/code/OCRAD.js
 [github源]
 // @require      https://raw.githubusercontent.com/SeaLoong/Bilibili-LRHH/master/OCRAD.min.js
 [gitee源]
@@ -36,7 +34,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.5.6';
+    const VERSION = '2.4.5.7';
     try{
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2815,9 +2813,10 @@
                 checkSleep:()=>{
                     let srange = BiliPushUtils.Check.sleepTimeRange;
                     const now = new Date();
-                    const nh = now.getHours();
-                    const nm = now.getMinutes();
-                    let f = srange.find(it=>(it.bh==nh && it.bm<=nm) || it.bh<nh && it.eh>nh || (it.eh==nh && it.em>=nm));
+                    function dayTime(hours,mins){
+                        return new Date().setHours(hours,mins,0,0)
+                    }
+                    let f = srange.find(it=>dayTime(it.bh,it.bm)<= now && now<=dayTime(it.eh,it.em));
                     return f;
                 },
                 start:async ()=>{
