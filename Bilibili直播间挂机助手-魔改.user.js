@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Bilibili直播间挂机助手-魔改-BASE
+// @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
 // @version      2.4.5.8
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼等，包含恶意代码
