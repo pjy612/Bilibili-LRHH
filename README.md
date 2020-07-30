@@ -31,11 +31,15 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
 
 -----------------
 ## GitHub中脚本如何安装魔改版
+如果 Git 不能正常访问 还请自行设置一下 Hosts
+```
+151.101.76.133 raw.githubusercontent.com
+```
 1. 安装油猴插件
 2. 点击 
-[脚本安装-魔改助手1](https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js)
-[脚本安装-魔改助手2](https://github.com/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js)
-[脚本安装-魔改助手3-github国内镜像加速](https://github.com.cnpmjs.org/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js)
+2.1 [脚本安装-魔改助手1](https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js)
+2.2 [脚本安装-魔改助手2](https://github.com/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js)
+2.3 [脚本安装-魔改助手3-github国内镜像加速](https://github.com.cnpmjs.org/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js)
 
 3. 如果github安装不稳定，请自行新建复制 同下方原版步骤
 
@@ -145,6 +149,9 @@ PS： 本脚本 极具危害性 可能会清空您的背包 盗取你的金瓜�
 -----------------
 
 ## 更新日志
+> ###  2020-07-30 (Version 2.4.5.15)
+>     单纯换源 cdn.jsdelivr.net 都能挂 囧
+>
 > ###  2020-07-28 (Version 2.4.5.14)
 >     应援团重试次数限制，瓜子依赖原作者好像删还是换位置了 囧 换个源
 >

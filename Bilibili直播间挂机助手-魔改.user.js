@@ -1,30 +1,33 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.5.14
+// @version      2.4.5.15
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼，自动点亮勋章，挂小心心等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
-// @updateURL    https://github.com.cnpmjs.org/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
-// @downloadURL  https://github.com.cnpmjs.org/pjy612/Bilibili-LRHH/raw/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
+// @downloadURL  https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
 // @homepageURL  https://github.com/pjy612/Bilibili-LRHH
 // @supportURL   https://github.com/pjy612/Bilibili-LRHH/issues
 // @include      /https?:\/\/live\.bilibili\.com\/[blanc\/]?[^?]*?\d+\??.*/
 // @include      /https?:\/\/api\.live\.bilibili\.com\/_.*/
-// @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
-// @require      https://cdn.jsdelivr.net/gh/pjy612/Bilibili-LRHH/BilibiliAPI_Plus.js
-// @require      https://cdn.jsdelivr.net/gh/pjy612/Bilibili-LRHH/OCRAD.min.js
-// @require      https://cdn.jsdelivr.net/gh/lzghzr/TampermonkeyJS/libBilibiliToken/libBilibiliToken.user.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js
+// @require      https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/BilibiliAPI_Plus.js
+// @require      https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/OCRAD.min.js
+// @require      https://raw.githubusercontent.com/lzghzr/TampermonkeyJS/master/libBilibiliToken/libBilibiliToken.user.js
 // @run-at       document-idle
 // @license      MIT License
 // @connect      passport.bilibili.com
 // @connect      api.live.bilibili.com
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
-
+/*
+如果 raw.githubusercontent.com 无法访问 请自行尝试修改 Hosts 后 再尝试访问
+151.101.76.133 raw.githubusercontent.com
+*/
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.5.14';
+    const VERSION = '2.4.5.15';
     try {
 	var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
 	const t = Date.now() / 1000;
@@ -2452,7 +2455,7 @@
 		    try {
 			API = BilibiliAPI;
 		    } catch (err) {
-			window.toast('BilibiliAPI初始化失败，脚本已停用！', 'error');
+			window.toast('BilibiliAPI初始化失败，请检查网络和依赖项访问是否正常！', 'error');
 			console.error(`[${NAME}]`, err);
 			return p1.reject();
 		    }
@@ -2462,7 +2465,7 @@
 		    } catch (err) {
 			TokenUtil = null;
 			Token = null;
-			window.toast('BilibiliToken 初始化失败，移动端功能可能失效！', 'error');
+			window.toast('BilibiliToken 初始化失败，移动端功能可能失效！请检查网络和依赖项访问是否正常！', 'error');
 			console.error(`[${NAME}]`, err);
 		    }
 		    const uniqueCheck = () => {
