@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.5.15
+// @version      2.4.5.16
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼，自动点亮勋章，挂小心心等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -24,10 +24,16 @@
 如果 raw.githubusercontent.com 无法访问 请自行尝试修改 Hosts 后 再尝试访问
 151.101.76.133 raw.githubusercontent.com
 */
+/*
+不想或不会改Hosts，可以尝试用下面的源 替换上方对应的
+// @require      https://cdn.jsdelivr.net/gh/pjy612/Bilibili-LRHH/BilibiliAPI_Plus.js
+// @require      https://cdn.jsdelivr.net/gh/pjy612/Bilibili-LRHH/Bilibili-LRHH/master/OCRAD.min.js
+// @require      https://cdn.jsdelivr.net/gh/lzghzr/TampermonkeyJS/libBilibiliToken/libBilibiliToken.user.js
+*/
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.5.15';
+    const VERSION = '2.4.5.16';
     try {
 	var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
 	const t = Date.now() / 1000;
@@ -268,6 +274,7 @@
 		    AUTO_LOTTERY: true,
 		    AUTO_LOTTERY_CONFIG: {
 			SLEEP_RANGE: "",
+			RANK_TOP:false,
 			GIFT_LOTTERY: true,
 			GIFT_LOTTERY_CONFIG: {
 			    REFRESH_INTERVAL: 0
@@ -325,6 +332,7 @@
 		    AUTO_LOTTERY: '自动抽奖',
 		    AUTO_LOTTERY_CONFIG: {
 			SLEEP_RANGE: '休眠时间',
+			RANK_TOP: '小时榜',
 			GIFT_LOTTERY: '礼物抽奖',
 			GIFT_LOTTERY_CONFIG: {
 			    REFRESH_INTERVAL: '刷新间隔'
@@ -404,6 +412,7 @@
 		    AUTO_LOTTERY: '设置是否自动参加抽奖功能，包括礼物抽奖、活动抽奖、实物抽奖<br>会占用更多资源并可能导致卡顿，且有封号风险',
 		    AUTO_LOTTERY_CONFIG: {
 			SLEEP_RANGE: '休眠时间范围，英文逗号分隔<br>例如：<br>3:00-8:00,16:50-17:30<br>表示 3:00-8:00和16:50-17:30不进行礼物检测。<br>小时为当天只能为0-23,如果要转钟请单独配置aa:aa-23:59,00:00-bb:bb',
+			RANK_TOP:'自动扫描小时榜',
 			GIFT_LOTTERY: '包括小电视、摩天大楼、C位光环及其他可以通过送礼触发广播的抽奖<br>内置几秒钟的延迟',
 			GIFT_LOTTERY_CONFIG: {
 			    REFRESH_INTERVAL: '设置页面自动刷新的时间间隔，设置为0则不启用，单位为分钟<br>太久导致页面崩溃将无法正常运行脚本'
@@ -2639,34 +2648,36 @@
 	const TopRankTask = {
 	    process: async () => {
 		try {
-		    let roomSet = new Set();
-		    let toprank = await delayCall(() => BiliPushUtils.API.LiveRank.topRank(), 1000);
-		    let areaRank = await delayCall(() => BiliPushUtils.API.LiveRank.areaRank(0), 1000);
-		    let rankList = [toprank, areaRank];
-		    let getListRsp = await API.room.getList();
-		    if (getListRsp.code == 0 && getListRsp.data) {
-			for (let areaInfo of getListRsp.data) {
-			    let areaRank = await delayCall(() => BiliPushUtils.API.LiveRank.areaRank(
-				areaInfo.id), 1000)
-			    rankList.push(areaRank);
-			}
-		    }
-		    for (let rsp of rankList) {
-			if (rsp.code == 0 && rsp.data.list) {
-			    for (let room of rsp.data.list) {
-				roomSet.add(room.roomid)
+		    if(CONFIG.AUTO_LOTTERY_CONFIG.RANK_TOP){
+			window.toast('开始扫描小时榜...', 'info');
+			let roomSet = new Set();
+			let toprank = await delayCall(() => BiliPushUtils.API.LiveRank.topRank(), 1000);
+			let areaRank = await delayCall(() => BiliPushUtils.API.LiveRank.areaRank(0), 1000);
+			let rankList = [toprank, areaRank];
+			let getListRsp = await API.room.getList();
+			if (getListRsp.code == 0 && getListRsp.data) {
+			    for (let areaInfo of getListRsp.data) {
+				let areaRank = await delayCall(() => BiliPushUtils.API.LiveRank.areaRank(
+				    areaInfo.id), 1000)
+				rankList.push(areaRank);
 			    }
 			}
-		    }
-		    for (let roomid of roomSet) {
-			await BiliPushUtils.Check.run(roomid);
+			for (let rsp of rankList) {
+			    if (rsp.code == 0 && rsp.data.list) {
+				for (let room of rsp.data.list) {
+				    roomSet.add(room.roomid)
+				}
+			    }
+			}
+			for (let roomid of roomSet) {
+			    await BiliPushUtils.Check.run(roomid);
+			}
 		    }
 		    await delayCall(() => TopRankTask.run(), 300e3);
 		} catch (err) {
 		    console.error(`[${NAME}]`, err);
 		    return delayCall(() => TopRankTask.run());
 		}
-
 	    },
 	    run: async () => {
 		try {
@@ -2702,6 +2713,9 @@
 	    pkIdSet: new Set(),
 	    stormBlack: false,
 	    stormQueue: [],
+	    lastEnter:null,
+	    enterSet: new Set(),
+	    initSet: new Set(),
 	    sign: null,
 	    msgIgnore: (msg) => {
 		if (msg) {
@@ -2839,22 +2853,35 @@
 		if (BiliPush.connected) {
 		    return false;
 		} else {
-		    const p = $.Deferred();
-		    BiliPushUtils.API.room.room_init(roomid).then((response) => {
-			DEBUG('BiliPushUtils.BaseRoomAction: BiliPushUtils.API.room.room_init',
-			      response);
-			if (response.code === 0) {
-			    if (response.data.is_hidden || response.data.is_locked || response.data
-				.encrypted || response.data.pwd_verified) return p.resolve(true);
-			    return p.resolve(false);
+		    try{
+			if(BiliPushUtils.lastEnter){
+			    if(new Date().getDate() != BiliPushUtils.lastEnter.getDate()){
+				BiliPushUtils.enterSet.clear();
+				BiliPushUtils.initSet.clear();
+			    }
+			    BiliPushUtils.lastEnter = new Date();
 			}
-			p.reject();
-		    }, () => {
-			p.reject();
-		    }).always(() => {
-			BiliPushUtils.API.room.room_entry_action(roomid);
-		    });
-		    return p;
+			BiliPushUtils.lastEnter = new Date();
+			if(BiliPushUtils.initSet.has(roomid)){
+			    return false;
+			}
+			let response = await BiliPushUtils.API.room.room_init(roomid);
+			DEBUG('BiliPushUtils.BaseRoomAction: BiliPushUtils.API.room.room_init',response);
+			if (response.code === 0) {
+			    if (response.data.is_hidden || response.data.is_locked || response.data.encrypted || response.data.pwd_verified) {
+				return true;
+			    }
+			}
+			BiliPushUtils.initSet.add(roomid);
+			return false;
+		    }catch(e){
+			throw(e);
+		    }finally{
+			if(!BiliPushUtils.enterSet.has(roomid)){
+			    BiliPushUtils.enterSet.add(roomid);
+			    await BiliPushUtils.API.room.room_entry_action(roomid);
+			}
+		    }
 		}
 	    },
 	    API: {
@@ -3620,7 +3647,7 @@
 			BiliPush.gsocket.send("ping");
 			BiliPush.gheartTimeId = setInterval(function () {
 			    BiliPush.gsocket.send("ping");
-			}, 120e3);
+			}, 60e3);
 		    };
 		    BiliPush.gsocket.onclose = function (e) {
 			console.error('bilipush 连接断开');
