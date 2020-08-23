@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.6.1
+// @version      2.4.6.2
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼，自动点亮勋章，挂小心心等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -33,7 +33,7 @@
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.6.1';
+    const VERSION = '2.4.6.2';
     try {
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -3258,7 +3258,7 @@
                 over: (id) => {
                     var index = BiliPushUtils.stormQueue.indexOf(id);
                     if (index > -1) {
-                        BiliPushUtils.stormQueue.splice(id, 1);
+                        BiliPushUtils.stormQueue.splice(index, 1);
                     }
                 },
                 run: (roomid) => {
@@ -3310,6 +3310,7 @@
                         endtime = Math.round(new Date().getTime() / 1000) + 90;
                     }
                     var count = 0;
+                    var block_count = 0;
                     window.toast(`[自动抽奖][节奏风暴]尝试抽奖(roomid=${roomid},id=${id})`, 'success');
                     async function process() {
                         try {
@@ -3351,7 +3352,7 @@
                                         BiliPushUtils.Storm.over(id);
                                         clearInterval(stormInterval);
                                         window.toast(
-                                            `[自动抽奖][节奏风暴]领取(roomid=${roomid},id=${id})成功,${response.msg}\r\n尝试次数:${count}`,
+                                            `[自动抽奖][节奏风暴]领取(roomid=${roomid},id=${id},block_count=${block_count})成功,${response.msg}\r\n尝试次数:${count}`,
                                             'success');
                                         return;
                                     }
@@ -3360,15 +3361,18 @@
                                         clearInterval(stormInterval);
                                         BiliPushUtils.stormBlack = true;
                                         window.toast(
-                                            `[自动抽奖][节奏风暴]抽奖(roomid=${roomid},id=${id})失败,疑似账号不支持,${response.msg}`,'caution');
+                                            `[自动抽奖][节奏风暴]抽奖(roomid=${roomid},id=${id},block_count=${block_count})失败,疑似账号不支持,${response.msg}`,'caution');
                                         return;
                                     }
                                     if (response.data && response.data.length == 0 && response.msg.indexOf(
                                         "下次要更快一点") != -1) {
+                                        block_count++;
+                                        /*
                                         BiliPushUtils.Storm.over(id);
                                         window.toast(
                                             `[自动抽奖][节奏风暴]抽奖(roomid=${roomid},id=${id})疑似风暴黑屋,终止！\r\n尝试次数:${count}`,'error');
                                         clearInterval(stormInterval);
+                                        */
                                         //BiliPushUtils.stormBlack = true;
                                         //setTimeout(() => {
                                         //    BiliPushUtils.stormBlack = false;
@@ -3384,7 +3388,7 @@
                                     BiliPushUtils.Storm.over(id);
                                     Statistics.appendGift(response.data.gift_name, response.data.gift_num);
                                     window.toast(
-                                        `[自动抽奖][节奏风暴]领取(roomid=${roomid},id=${id})成功,${response.data.gift_name+"x"+response.data.gift_num}\r\n${response.data.mobile_content}\r\n尝试次数:${count}`,'success');
+                                        `[自动抽奖][节奏风暴]领取(roomid=${roomid},id=${id},block_count=${block_count})成功,${response.data.gift_name+"x"+response.data.gift_num}\r\n${response.data.mobile_content}\r\n尝试次数:${count}`,'success');
                                     clearInterval(stormInterval);
                                     return;
                                 }
@@ -3399,7 +3403,7 @@
                             }
                         } catch (e) {
                             BiliPushUtils.Storm.over(id);
-                            window.toast(`[自动抽奖][节奏风暴]抽奖(roomid=${roomid},id=${id})抽奖异常,终止！`, 'error');
+                            window.toast(`[自动抽奖][节奏风暴]抽奖(roomid=${roomid},id=${id},block_count=${block_count})抽奖异常,终止！`, 'error');
                             console.error(e);
                             clearInterval(stormInterval);
                             return;
