@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili直播间挂机助手-魔改
 // @namespace    SeaLoong
-// @version      2.4.6.6
+// @version      2.4.6.7
 // @description  Bilibili直播间自动签到，领瓜子，参加抽奖，完成任务，送礼，自动点亮勋章，挂小心心等，包含恶意代码
 // @author       SeaLoong,lzghzr,pjy612
 // @updateURL    https://raw.githubusercontent.com/pjy612/Bilibili-LRHH/master/Bilibili%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B-%E9%AD%94%E6%94%B9.user.js
@@ -422,7 +422,7 @@ BilibiliToken.platform = 'android';
 (function BLRHH_Plus() {
     'use strict';
     const NAME = 'BLRHH-Plus';
-    const VERSION = '2.4.6.6';
+    const VERSION = '2.4.6.7';
     try {
         var tmpcache = JSON.parse(localStorage.getItem(`${NAME}_CACHE`));
         const t = Date.now() / 1000;
@@ -2423,6 +2423,7 @@ BilibiliToken.platform = 'android';
                 ignore_keyword: ['test', 'encrypt', '测试', '钓鱼', '加密', '炸鱼'],
                 run: () => {
                     try {
+                        window.materialobjects = ()=>Lottery.MaterialObject.list.filter(it=>it.state<1);
                         if (CACHE.materialobject_ts) {
                             const diff = ts_ms() - CACHE.materialobject_ts;
                             const interval = CONFIG.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL *
@@ -2447,7 +2448,7 @@ BilibiliToken.platform = 'android';
                         return $.Deferred().reject();
                     }
                 },
-                check: (aid, valid = 564, rem = 9) => { // TODO
+                check: (aid, valid = 703, rem = 9) => { // TODO
                     aid = parseInt(aid || (CACHE.last_aid), 10);
                     if (isNaN(aid)) aid = valid;
                     DEBUG('Lottery.MaterialObject.check: aid=', aid);
@@ -2566,7 +2567,7 @@ BilibiliToken.platform = 'android';
                                     return false;
                                 }
                             });
-                            $.each(response.data.winnerList, (i, v) => {
+                            $.each(response.data.groups, (i, v) => {
                                 if (v.uid === Info.uid) {
                                     window.toast(
                                         `[自动抽奖][实物抽奖]抽奖"${obj.title}"(aid=${obj.aid},number=${obj.number})获得奖励"${v.giftTitle}"`,
